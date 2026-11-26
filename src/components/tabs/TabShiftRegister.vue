@@ -1,350 +1,396 @@
 <template>
-  <div class="space-y-4 sm:space-y-6">
-    <!-- Admin Quick Control Bar: Bật / Tắt Cổng Đăng Ký Ca Trực -->
-    <div v-if="currentUserRole === 'admin'" class="p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs transition-all"
-         :class="shiftSettings?.isRegistrationOpen !== false ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs"
-             :class="shiftSettings?.isRegistrationOpen !== false ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'">
-          <i class="fa-solid" :class="shiftSettings?.isRegistrationOpen !== false ? 'fa-door-open text-base' : 'fa-door-closed text-base'"></i>
+  <div class="space-y-5">
+    <!-- Admin Portal Toggle Banner -->
+    <div
+      v-if="auth.isAdmin"
+      class="bg-white dark:bg-slate-900 border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+      :class="isRegOpen ? 'border-emerald-200 dark:border-emerald-800/70' : 'border-red-200 dark:border-red-800/70'"
+    >
+      <div class="flex items-start gap-3">
+        <div
+          class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+          :class="isRegOpen ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-950/50 text-[#c8102e] dark:text-red-400'"
+        >
+          <DoorOpen v-if="isRegOpen" class="w-5 h-5" />
+          <Lock v-else class="w-5 h-5" />
         </div>
         <div>
-          <div class="text-xs font-black flex items-center gap-2 flex-wrap"
-               :class="shiftSettings?.isRegistrationOpen !== false ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'">
-            <span>CỔNG ĐĂNG KÝ CA TRỰC:</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide shadow-xs"
-                  :class="shiftSettings?.isRegistrationOpen !== false ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'">
-              {{ shiftSettings?.isRegistrationOpen !== false ? '🟢 Đang Mở Cho Thành Viên' : '🔴 Đang Đóng Cổng Đăng Ký' }}
+          <div class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
+            <span>Cổng đăng ký ca trực</span>
+            <span
+              class="px-2 py-0.5 rounded text-[11px] font-semibold"
+              :class="isRegOpen ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-50 text-[#c8102e] dark:bg-red-950 dark:text-red-300'"
+            >
+              {{ isRegOpen ? 'Đang mở' : 'Đang đóng' }}
             </span>
           </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {{ shiftSettings?.isRegistrationOpen !== false ? 'Thành viên có thể tự do đăng ký ca trực. Bấm nút bên cạnh để đóng cổng khi cần chốt ca.' : 'Thành viên đang bị khóa form đăng ký. Quản trị viên vẫn có quyền đăng ký bổ sung thay thành viên.' }}
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {{ isRegOpen ? 'Thành viên có thể đăng ký ca trực bình thường.' : 'Đã khóa đăng ký với thành viên. Quản trị viên vẫn có thể bổ sung trực tiếp.' }}
           </p>
         </div>
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
-        <button type="button" @click="$emit('toggle-registration-open')"
-                class="px-4 py-2 rounded-xl text-xs font-extrabold text-white shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95"
-                :class="shiftSettings?.isRegistrationOpen !== false ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'">
-          <i class="fa-solid" :class="shiftSettings?.isRegistrationOpen !== false ? 'fa-lock' : 'fa-lock-open'"></i>
-          <span>{{ shiftSettings?.isRegistrationOpen !== false ? 'Đóng Cổng Đăng Ký' : 'Mở Cổng Đăng Ký' }}</span>
+        <button
+          type="button"
+          @click="data.toggleRegistrationOpen()"
+          class="px-3.5 py-2 rounded-lg text-xs font-semibold text-white transition cursor-pointer"
+          :class="isRegOpen ? 'bg-[#c8102e] hover:bg-red-700' : 'bg-emerald-700 hover:bg-emerald-800'"
+        >
+          {{ isRegOpen ? 'Đóng cổng đăng ký' : 'Mở cổng đăng ký' }}
         </button>
-        <button @click="$emit('open-shift-settings')" type="button"
-                class="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-xl text-xs font-bold border border-indigo-200 dark:border-indigo-800 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                title="Tùy chỉnh số lượng người trực mỗi ca & danh sách ca không giới hạn">
-          <i class="fa-solid fa-sliders"></i>
-          <span class="hidden sm:inline">Cấu hình</span>
+        <button
+          type="button"
+          @click="ui.showShiftSettingsModal = true"
+          class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+        >
+          <SlidersHorizontal class="w-3.5 h-3.5" />
+          <span>Cấu hình ca</span>
         </button>
       </div>
     </div>
 
-    <!-- Member Warning Banner when Registration is Closed -->
-    <div v-if="currentUserRole !== 'admin' && shiftSettings?.isRegistrationOpen === false"
-         class="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs space-y-1">
-      <div class="font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-2 text-sm">
-        <i class="fa-solid fa-lock text-base"></i> CỔNG ĐĂNG KÝ CA TRỰC ĐANG TẠM ĐÓNG
+    <!-- Member Closed Banner -->
+    <div
+      v-if="!auth.isAdmin && !isRegOpen"
+      class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/70 rounded-xl p-4 flex items-start gap-3 text-xs"
+    >
+      <Lock class="w-4 h-4 text-[#c8102e] dark:text-red-400 shrink-0 mt-0.5" />
+      <div>
+        <p class="font-bold text-[#c8102e] dark:text-red-300">Cổng đăng ký ca trực hiện đang tạm đóng</p>
+        <p class="text-slate-600 dark:text-slate-300 mt-0.5">
+          Quản trị viên đang chốt lịch trực. Nếu cần bổ sung hoặc đổi ca, vui lòng liên hệ Ban Điều hành.
+        </p>
       </div>
-      <p class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
-        Quản trị viên đã tạm khóa cổng đăng ký ca trực tuần này để tổng hợp lịch. Nếu bạn có nhu cầu đăng ký đột xuất hoặc đổi ca, vui lòng liên hệ Ban Điều Hành / Quản trị viên để được hỗ trợ.
-      </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-      <!-- Left: Form Đăng ký ca trực -->
-      <div class="md:col-span-1 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 space-y-4">
-        <div class="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
-          <div>
-            <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <i class="fa-solid fa-calendar-plus text-sky-600 dark:text-sky-400"></i> Đăng Ký Lịch Trực
-            </h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Đăng ký lịch trực dự kiến theo tuần</p>
-          </div>
-          <button v-if="currentUserRole === 'admin'" @click="$emit('open-shift-settings')" type="button"
-                  class="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-xl text-[11px] font-bold border border-indigo-200 dark:border-indigo-800 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  title="Tùy chỉnh số lượng người trực mỗi ca & danh sách ca không giới hạn">
-            <i class="fa-solid fa-sliders"></i> Cấu hình ca
-          </button>
+    <!-- 2-Column Workspace -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <!-- Registration Form -->
+      <section class="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 h-fit space-y-4">
+        <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">Đăng ký lịch trực</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Đăng ký ca trực dự kiến theo ngày</p>
         </div>
 
-        <form @submit.prevent="$emit('save-registration')" class="space-y-3.5">
+        <form @submit.prevent="handleSubmit" class="space-y-3.5 text-xs">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
-              Thành Viên Đăng Ký <span class="text-red-500">*</span>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Thành viên đăng ký <span class="text-[#c8102e]">*</span>
             </label>
-
-            <!-- Admin view: Select Member Dropdown with Quick Search -->
-            <div v-if="currentUserRole === 'admin'" class="space-y-1.5">
+            <div v-if="auth.isAdmin" class="space-y-1.5">
               <div class="relative">
-                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 pointer-events-none">
-                  <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
-                </span>
-                <input type="text" v-model="adminMemberSearch" placeholder="Lọc thành viên theo tên/MSSV..."
-                       class="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-7 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500 placeholder-slate-400">
-                <button v-if="adminMemberSearch" @click="adminMemberSearch = ''" type="button"
-                        class="absolute inset-y-0 right-0 pr-2 flex items-center text-slate-400 hover:text-slate-600">
-                  <i class="fa-solid fa-circle-xmark text-[11px]"></i>
-                </button>
+                <Search class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  v-model="adminMemberSearch"
+                  type="text"
+                  placeholder="Lọc thành viên theo tên, MSSV..."
+                  class="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+                />
               </div>
-              <select v-model="regForm.memberId" required
-                      class="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none bg-white dark:bg-slate-900 dark:text-white font-medium">
-                <option value="" disabled>-- Chọn thành viên ({{ filteredAdminMembers.length }}) --</option>
-                <option v-for="m in filteredAdminMembers" :key="m.id" :value="m.id">
-                  [{{ m.id }}] {{ m.name }} ({{ m.department || 'Ban chưa đặt' }})
+              <select
+                v-model="form.memberId"
+                required
+                class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+              >
+                <option value="" disabled>-- Chọn thành viên ({{ filteredMembers.length }}) --</option>
+                <option v-for="m in filteredMembers" :key="m.id" :value="m.id">
+                  [{{ m.id }}] {{ m.name }} ({{ m.department || 'Chưa phân ban' }})
                 </option>
               </select>
             </div>
-
-            <!-- Member view: Auto-filled Logged In Member Card -->
-            <div v-else class="p-3 bg-sky-50/80 dark:bg-sky-950/40 rounded-xl border border-sky-200/80 dark:border-sky-900/60 flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-sky-600 text-white font-black text-xs flex items-center justify-center shadow-xs shrink-0">
-                {{ getMemberName(loggedInMemberId)?.charAt(0)?.toUpperCase() || 'U' }}
-              </div>
-              <div class="overflow-hidden">
-                <div class="text-xs font-black text-slate-800 dark:text-white truncate">
-                  {{ getMemberName(loggedInMemberId) }}
-                </div>
-                <div class="text-[11px] text-sky-600 dark:text-sky-300 font-bold truncate">
-                  MSSV: {{ loggedInMemberId }} • {{ getMemberDept(loggedInMemberId) }}
-                </div>
+            <div
+              v-else
+              class="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60"
+            >
+              <div class="font-semibold text-slate-900 dark:text-white">{{ data.getMemberName(auth.loggedInMemberId) }}</div>
+              <div class="text-[11px] text-slate-500 font-mono mt-0.5">
+                {{ auth.loggedInMemberId }} · {{ data.getMemberDept(auth.loggedInMemberId) }}
               </div>
             </div>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
-              Ngày Đăng Ký Trực <span class="text-red-500">*</span>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ngày trực <span class="text-[#c8102e]">*</span>
             </label>
-            <input type="date" v-model="regForm.date" :min="currentUserRole === 'admin' ? null : todayDate" required
-                   :disabled="currentUserRole !== 'admin' && shiftSettings?.isRegistrationOpen === false"
-                   class="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 dark:text-white rounded-lg p-2 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
-            <div class="flex items-center justify-between mt-1 text-[11px]" v-if="regForm.date">
-              <span class="text-sky-600 dark:text-sky-400 font-medium">📅 {{ getWeekNameFromDate(regForm.date) }}</span>
-              <span class="font-bold" :class="isRegDateFull ? 'text-rose-600' : 'text-emerald-600'">
-                {{ isRegDateFull ? '🔴 Đã kín toàn bộ ca' : ((!shiftSettings?.maxPerShift || shiftSettings.maxPerShift <= 0) ? '🟢 Không giới hạn' : `🟢 Đã kín ${getTakenShiftsCountForDate(regForm.date)}/${dynamicShiftTypes.length} ca`) }}
+            <input
+              v-model="form.date"
+              type="date"
+              :min="auth.isAdmin ? undefined : today"
+              :disabled="!auth.isAdmin && !isRegOpen"
+              required
+              class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-brand-600 disabled:opacity-50"
+            />
+            <div v-if="form.date" class="flex items-center justify-between text-[11px] mt-1">
+              <span class="text-slate-500 dark:text-slate-400">{{ getWeekNameFromDate(form.date) }}</span>
+              <span class="font-semibold" :class="dateIsFull ? 'text-[#c8102e]' : 'text-emerald-700 dark:text-emerald-400'">
+                {{ dateIsFull ? 'Đã kín tất cả ca' : (data.shiftSettings.maxPerShift > 0 ? `Kín ${data.getTakenShiftsCountForDate(form.date)}/${data.shiftTypes.length} ca` : 'Không giới hạn') }}
               </span>
             </div>
-            <p v-if="currentUserRole !== 'admin' && regForm.date && regForm.date < todayDate" class="text-[11px] text-rose-600 font-bold mt-1">
-              ⚠️ Không thể chọn ngày trong quá khứ!
-            </p>
-          </div>
-
-          <div v-if="isRegDateFull" class="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs text-rose-700 dark:text-rose-300 font-bold flex items-center gap-2">
-            <i class="fa-solid fa-ban text-lg text-rose-600 shrink-0"></i>
-            <div>
-              <p class="font-black text-rose-800 dark:text-rose-200">🔴 NGÀY ĐÃ KÍN TOÀN BỘ CA</p>
-              <p class="text-[11px] font-normal text-rose-600 dark:text-rose-300">Tất cả các ca trực ngày {{ formatDate(regForm.date) }} đều đã đạt số lượng tối đa. Vui lòng chọn ngày khác!</p>
-            </div>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
-              Ca Trực Muốn Đăng Ký <span class="text-red-500">*</span>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ca trực <span class="text-[#c8102e]">*</span>
             </label>
-            <select v-model="regForm.shiftType" required
-                    :disabled="(currentUserRole !== 'admin' && shiftSettings?.isRegistrationOpen === false) || isRegDateFull || (currentUserRole !== 'admin' && regForm.date && regForm.date < todayDate)"
-                    class="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none bg-white dark:bg-slate-900 dark:text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed">
-              <option v-for="st in dynamicShiftTypes" :key="st.id || st.name" :value="st.name || st.id" :disabled="isShiftFullOnDate(st.name || st.id, regForm.date)">
-                {{ st.name }} {{ st.time ? '(' + st.time + ')' : '' }} — [{{ getShiftSlotLabel(st.name || st.id, regForm.date) }}] {{ isShiftFullOnDate(st.name || st.id, regForm.date) ? '🔴 [FULL]' : '🟢 [Còn chỗ]' }}
+            <select
+              v-model="form.shiftType"
+              :disabled="isFormDisabled"
+              required
+              class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-brand-600 disabled:opacity-50"
+            >
+              <option
+                v-for="st in data.shiftTypes"
+                :key="st.id || st.name"
+                :value="st.name || st.id"
+                :disabled="data.isShiftFullOnDate(st.name || st.id, form.date)"
+              >
+                {{ st.name }} {{ st.time ? `(${st.time})` : '' }} — {{ slotLabel(st.name || st.id) }}
               </option>
             </select>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Ghi Chú (Tùy chọn)</label>
-            <input type="text" v-model="regForm.notes" placeholder="VD: Đăng ký cố định hàng tuần..."
-                   :disabled="currentUserRole !== 'admin' && shiftSettings?.isRegistrationOpen === false"
-                   class="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 dark:text-white rounded-lg p-2 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
-            <p class="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 font-semibold flex items-center gap-1">
-              <i class="fa-solid fa-circle-info"></i> Quy định: {{ (!shiftSettings?.maxPerShift || shiftSettings.maxPerShift <= 0) ? 'Không giới hạn số người/ca' : 'Tối đa ' + shiftSettings.maxPerShift + ' người/ca' }} • {{ (!shiftSettings?.maxPerDay || shiftSettings.maxPerDay <= 0) ? 'Không giới hạn số ca/ngày' : 'Tối đa ' + shiftSettings.maxPerDay + ' ca/ngày' }}
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Ghi chú</label>
+            <input
+              v-model="form.notes"
+              type="text"
+              :disabled="!auth.isAdmin && !isRegOpen"
+              placeholder="VD: Trực cố định sáng thứ 3..."
+              class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600 disabled:opacity-50"
+            />
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+              Định mức:
+              {{ data.shiftSettings.maxPerShift > 0 ? `Tối đa ${data.shiftSettings.maxPerShift} người/ca` : 'Không giới hạn người/ca' }}
+              ·
+              {{ data.shiftSettings.maxPerDay > 0 ? `Tối đa ${data.shiftSettings.maxPerDay} ca/ngày` : 'Không giới hạn ca/ngày' }}
             </p>
           </div>
 
-          <button type="submit"
-                  :disabled="(currentUserRole !== 'admin' && shiftSettings?.isRegistrationOpen === false) || isRegDateFull || (currentUserRole !== 'admin' && regForm.date && regForm.date < todayDate)"
-                  class="w-full py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
-                  :class="((currentUserRole !== 'admin' && shiftSettings?.isRegistrationOpen === false) || isRegDateFull || (currentUserRole !== 'admin' && regForm.date && regForm.date < todayDate)) ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-sky-600 hover:bg-sky-700 text-white cursor-pointer'">
-            <i class="fa-solid" :class="(currentUserRole !== 'admin' && shiftSettings?.isRegistrationOpen === false) ? 'fa-lock' : (isRegDateFull ? 'fa-ban' : 'fa-paper-plane')"></i>
-            {{ (currentUserRole !== 'admin' && shiftSettings?.isRegistrationOpen === false) ? 'Cổng Đăng Ký Đang Tạm Đóng' : (isRegDateFull ? 'Ngày Đã Kín Ca (Full)' : 'Đăng Ký Lịch Trực') }}
+          <button
+            type="submit"
+            :disabled="isFormDisabled"
+            class="w-full py-2.5 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <CalendarPlus class="w-4 h-4" />
+            <span>{{ !auth.isAdmin && !isRegOpen ? 'Cổng đăng ký đang đóng' : 'Đăng ký ca trực' }}</span>
           </button>
         </form>
-      </div>
+      </section>
 
-      <!-- Right: Danh sách ca trực đã đăng ký -->
-      <div class="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+      <!-- Registrations List -->
+      <section class="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <i class="fa-solid fa-list-check text-sky-600 dark:text-sky-400"></i> Danh Sách Ca Trực Đã Đăng Ký
-            </h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Hiển thị lịch đăng ký ca trực dự kiến của toàn đội</p>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Danh sách ca đã đăng ký</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Hiển thị lịch trực dự kiến theo bộ lọc tháng / tuần</p>
           </div>
+
           <div class="flex flex-wrap items-center gap-2">
-            <!-- Bộ lọc Ca Của Tôi vs Tất Cả -->
-            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
-              <button type="button" @click="filterMode = 'all'"
-                      class="px-2.5 py-1 rounded-lg transition cursor-pointer"
-                      :class="filterMode === 'all' ? 'bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'">
-                Tất cả ({{ filteredRegistrations.length }})
+            <div class="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold">
+              <button
+                type="button"
+                @click="filterMode = 'all'"
+                class="px-2.5 py-1 rounded-md cursor-pointer"
+                :class="filterMode === 'all' ? 'bg-white dark:bg-slate-900 text-brand-700 dark:text-brand-300 shadow-xs' : 'text-slate-600 dark:text-slate-400'"
+              >
+                Tất cả ({{ periodRegs.length }})
               </button>
-              <button type="button" @click="filterMode = 'mine'"
-                      class="px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1"
-                      :class="filterMode === 'mine' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'">
-                <i class="fa-solid fa-user-check text-[10px]"></i> Ca của tôi ({{ myRegistrationsCount }})
+              <button
+                type="button"
+                @click="filterMode = 'mine'"
+                class="px-2.5 py-1 rounded-md cursor-pointer"
+                :class="filterMode === 'mine' ? 'bg-white dark:bg-slate-900 text-brand-700 dark:text-brand-300 shadow-xs' : 'text-slate-600 dark:text-slate-400'"
+              >
+                Của tôi ({{ myCount }})
               </button>
             </div>
 
-            <button @click="$emit('export-matrix-excel')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="Xuất ma trận ca làm theo mẫu Excel">
-              <i class="fa-solid fa-file-excel"></i> Xuất Mẫu Ca Làm
+            <button
+              type="button"
+              @click="handleExportMatrix"
+              class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            >
+              <FileSpreadsheet class="w-3.5 h-3.5" />
+              <span>Xuất Excel</span>
             </button>
           </div>
         </div>
 
-        <!-- Thanh Tìm Kiếm Thành Viên Trong Danh Sách Đăng Ký -->
+        <!-- Search -->
         <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
-            <i class="fa-solid fa-magnifying-glass text-xs"></i>
-          </span>
-          <input type="text" v-model="memberSearchKeyword"
-                 placeholder="Tìm theo tên thành viên hoặc MSSV trong danh sách đăng ký..."
-                 class="w-full border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium placeholder-slate-400">
-          <button v-if="memberSearchKeyword" @click="memberSearchKeyword = ''" type="button"
-                  class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
-            <i class="fa-solid fa-circle-xmark text-xs"></i>
+          <Search class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            v-model="searchKeyword"
+            type="text"
+            placeholder="Tìm theo tên, MSSV, Ban hoặc ca trực..."
+            class="w-full pl-8 pr-8 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+          />
+          <button
+            v-if="searchKeyword"
+            type="button"
+            @click="searchKeyword = ''"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+          >
+            <X class="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div class="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
-          <div v-for="r in displayedRegistrations" :key="r.id"
-               class="p-3.5 rounded-xl border transition flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800"
-               :class="[
-                 r.memberId === loggedInMemberId
-                   ? 'bg-sky-50/80 dark:bg-sky-950/30 border-sky-300 dark:border-sky-800 ring-1 ring-sky-400/30'
-                   : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'
-               ]">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <span class="font-bold text-slate-800 dark:text-white text-sm">
-                  {{ getMemberName(r.memberId) }}
-                  <span v-if="r.memberId === loggedInMemberId" class="text-[10px] font-black text-sky-600 dark:text-sky-400 ml-1">(Bạn)</span>
+        <!-- Items -->
+        <div class="space-y-2 max-h-[540px] overflow-y-auto pr-1">
+          <div
+            v-for="r in displayedRegs"
+            :key="r.id"
+            class="p-3 rounded-lg border flex items-center justify-between gap-3 transition"
+            :class="r.memberId === auth.loggedInMemberId
+              ? 'bg-brand-50/50 dark:bg-brand-900/20 border-brand-200 dark:border-brand-800/70'
+              : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800'"
+          >
+            <div class="min-w-0 space-y-0.5">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
+                  {{ data.getMemberName(r.memberId) }}
                 </span>
-                <span class="px-2 py-0.5 text-[10px] font-extrabold bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 rounded-md border border-sky-300 dark:border-sky-800">
+                <span class="text-[11px] font-mono text-slate-500">{{ r.memberId }}</span>
+                <span class="px-2 py-0.5 rounded bg-brand-50 dark:bg-brand-900/50 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-[11px] font-semibold">
                   {{ r.shiftType }}
                 </span>
-                <span class="text-xs text-slate-400 font-semibold">• {{ getMemberDept(r.memberId) }}</span>
+                <span class="text-[11px] text-slate-500 hidden sm:inline">· {{ data.getMemberDept(r.memberId) }}</span>
               </div>
-              <div class="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                🗓️ Ngày {{ formatDate(r.date) }} <span class="text-slate-400">({{ getWeekNameFromDate(r.date) }})</span>
-                <span v-if="r.notes" class="text-slate-500 dark:text-slate-400 italic font-normal ml-2">"{{ r.notes }}"</span>
+              <div class="text-xs text-slate-600 dark:text-slate-400 tabular-nums">
+                Ngày {{ formatDate(r.date) }}
+                <span class="text-slate-400">({{ getWeekNameFromDate(r.date) }})</span>
+                <span v-if="r.notes" class="italic text-slate-500 ml-1.5">— {{ r.notes }}</span>
               </div>
             </div>
 
-            <div class="flex items-center gap-1.5">
-              <button v-if="currentUserRole === 'admin'"
-                      @click.stop.prevent="$emit('delete-registration', r)"
-                      class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition cursor-pointer" title="Quản trị viên xóa ca này">
-                <i class="fa-solid fa-trash-can text-sm"></i>
+            <div class="shrink-0">
+              <button
+                v-if="auth.isAdmin"
+                type="button"
+                @click="askDelete(r)"
+                class="p-1.5 rounded-lg text-slate-400 hover:text-[#c8102e] hover:bg-red-50 dark:hover:bg-red-950/30 transition cursor-pointer"
+                title="Xóa lịch đăng ký"
+              >
+                <Trash2 class="w-4 h-4" />
               </button>
-              <span v-else-if="r.memberId === loggedInMemberId" class="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700" title="Muốn hủy ca đã đăng ký? Vui lòng gửi Đơn xin nghỉ phép để Admin duyệt">
-                🔒 Nộp Đơn Nghỉ Để Hủy
+              <span
+                v-else-if="r.memberId === auth.loggedInMemberId"
+                class="text-[11px] text-slate-400 hidden sm:inline"
+              >
+                Nộp đơn nghỉ để hủy
               </span>
             </div>
           </div>
 
-          <div v-if="displayedRegistrations.length === 0" class="p-8 text-center text-slate-400 text-xs">
-            {{ filterMode === 'mine' ? 'Bạn chưa đăng ký ca trực nào trong thời gian này.' : 'Chưa có lịch đăng ký ca trực nào.' }}
+          <div v-if="displayedRegs.length === 0" class="py-10 text-center text-xs text-slate-400">
+            {{ filterMode === 'mine' ? 'Bạn chưa có lịch đăng ký trong khoảng thời gian này.' : 'Chưa có lịch đăng ký ca trực phù hợp.' }}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
+import { DoorOpen, Lock, SlidersHorizontal, Search, CalendarPlus, FileSpreadsheet, X, Trash2 } from 'lucide-vue-next';
+import { useDataStore } from '../../stores/data.js';
+import { useAuthStore } from '../../stores/auth.js';
+import { useUiStore } from '../../stores/ui.js';
+import { getTodayStr, formatDate, getWeekNameFromDate } from '../../utils/date.js';
+import { exportShiftScheduleMatrixExcel } from '../../utils/exporters.js';
+import { scheduleShiftReminder } from '../../utils/notifications.js';
 
-const props = defineProps([
-  'regForm',
-  'members',
-  'currentUserRole',
-  'loggedInMemberId',
-  'filteredRegistrations',
-  'todayDate',
-  'shiftTypes',
-  'shiftSettings',
-  'getMemberName',
-  'getMemberDept',
-  'formatDate',
-  'getWeekNameFromDate',
-  'getShiftRegisteredCount',
-  'isShiftFullOnDate',
-  'isShiftTakenOnDate',
-  'getTakenShiftsCountForDate',
-  'isRegDateFull'
-]);
+const data = useDataStore();
+const auth = useAuthStore();
+const ui = useUiStore();
 
-defineEmits(['save-registration', 'delete-registration', 'open-shift-settings', 'toggle-registration-open', 'export-matrix-excel']);
+const today = computed(() => getTodayStr());
+const isRegOpen = computed(() => data.shiftSettings?.isRegistrationOpen !== false);
 
-const dynamicShiftTypes = computed(() => {
-  if (props.shiftTypes && Array.isArray(props.shiftTypes) && props.shiftTypes.length > 0) {
-    return props.shiftTypes;
-  }
-  return [
-    { id: 'Ca 1', name: 'Ca 1', time: '7h30 - 9h20' },
-    { id: 'Ca 2', name: 'Ca 2', time: '9h20 - 11h30' },
-    { id: 'Ca 3', name: 'Ca 3', time: '13h00 - 15h20' },
-    { id: 'Ca 4', name: 'Ca 4', time: '15h20 - 17h00' }
-  ];
-});
-
-const filterMode = ref('all'); // 'all' | 'mine'
-const memberSearchKeyword = ref('');
 const adminMemberSearch = ref('');
+const filterMode = ref('all');
+const searchKeyword = ref('');
 
-const filteredAdminMembers = computed(() => {
-  if (!props.members || !Array.isArray(props.members)) return [];
-  const q = (adminMemberSearch.value || '').trim().toLowerCase();
-  if (!q) return props.members;
-  return props.members.filter(m => {
-    const name = String(m.name || '').toLowerCase();
-    const id = String(m.id || m.mssv || '').toLowerCase();
-    const dept = String(m.department || '').toLowerCase();
-    return name.includes(q) || id.includes(q) || dept.includes(q);
+const form = ref({
+  memberId: auth.loggedInMemberId,
+  date: getTodayStr(),
+  shiftType: data.shiftTypes[0]?.name || 'Ca 1',
+  notes: ''
+});
+
+const filteredMembers = computed(() => {
+  const q = adminMemberSearch.value.trim().toLowerCase();
+  if (!q) return data.members;
+  return data.members.filter(
+    (m) => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || (m.department || '').toLowerCase().includes(q)
+  );
+});
+
+const dateIsFull = computed(() => data.isDateFull(form.value.date));
+const isFormDisabled = computed(() => {
+  if (!auth.isAdmin && !isRegOpen.value) return true;
+  if (dateIsFull.value) return true;
+  if (!auth.isAdmin && form.value.date && form.value.date < today.value) return true;
+  return false;
+});
+
+function slotLabel(shiftName) {
+  const count = data.getShiftRegisteredCount(shiftName, form.value.date);
+  const max = Number(data.shiftSettings?.maxPerShift) || 0;
+  if (max <= 0) return `${count} đã đăng ký`;
+  return count >= max ? `${count}/${max} (Đầy)` : `${count}/${max} chỗ`;
+}
+
+async function handleSubmit() {
+  const saved = await data.saveRegistration({ ...form.value });
+  if (saved) {
+    scheduleShiftReminder(saved, data.getMemberName(saved.memberId));
+    form.value.notes = '';
+  }
+}
+
+const periodRegs = computed(() => data.getRegistrationsForPeriod(ui.selectedMonth, ui.selectedWeek));
+
+const myCount = computed(() =>
+  periodRegs.value.filter((r) => r.memberId === auth.loggedInMemberId).length
+);
+
+const displayedRegs = computed(() => {
+  let list = periodRegs.value;
+  if (filterMode.value === 'mine') {
+    list = list.filter((r) => r.memberId === auth.loggedInMemberId);
+  }
+  const q = searchKeyword.value.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter((r) =>
+    data.getMemberName(r.memberId).toLowerCase().includes(q) ||
+    r.memberId.toLowerCase().includes(q) ||
+    data.getMemberDept(r.memberId).toLowerCase().includes(q) ||
+    r.shiftType.toLowerCase().includes(q) ||
+    (r.notes || '').toLowerCase().includes(q)
+  );
+});
+
+function askDelete(reg) {
+  ui.openConfirm({
+    title: 'Hủy lịch đăng ký ca trực?',
+    message: `Xóa lịch ${reg.shiftType} ngày ${formatDate(reg.date)} của ${data.getMemberName(reg.memberId)} (${reg.memberId})?`,
+    confirmText: 'Xóa lịch trực',
+    action: () => data.deleteRegistration(reg.id)
   });
-});
+}
 
-const myRegistrationsCount = computed(() => {
-  if (!props.loggedInMemberId || !props.filteredRegistrations) return 0;
-  const myId = String(props.loggedInMemberId).trim().toLowerCase();
-  return props.filteredRegistrations.filter(r => String(r.memberId).trim().toLowerCase() === myId).length;
-});
-
-const displayedRegistrations = computed(() => {
-  let list = props.filteredRegistrations || [];
-  if (filterMode.value === 'mine' && props.loggedInMemberId) {
-    const myId = String(props.loggedInMemberId).trim().toLowerCase();
-    list = list.filter(r => String(r.memberId).trim().toLowerCase() === myId);
-  }
-  const q = (memberSearchKeyword.value || '').trim().toLowerCase();
-  if (q) {
-    list = list.filter(r => {
-      const name = String(props.getMemberName(r.memberId) || '').toLowerCase();
-      const id = String(r.memberId || '').toLowerCase();
-      const dept = String(props.getMemberDept(r.memberId) || '').toLowerCase();
-      const notes = String(r.notes || '').toLowerCase();
-      const shift = String(r.shiftType || '').toLowerCase();
-      return name.includes(q) || id.includes(q) || dept.includes(q) || notes.includes(q) || shift.includes(q);
-    });
-  }
-  return list;
-});
-
-const getShiftSlotLabel = (shiftName, dateStr) => {
-  const count = props.getShiftRegisteredCount ? props.getShiftRegisteredCount(shiftName, dateStr) : 0;
-  const max = Number(props.shiftSettings?.maxPerShift) || 0;
-  if (max <= 0) {
-    return `${count} người (Không giới hạn)`;
-  }
-  return `${count}/${max} người`;
-};
+async function handleExportMatrix() {
+  await exportShiftScheduleMatrixExcel({
+    registrations: periodRegs.value,
+    monthStr: ui.selectedMonth,
+    selectedWeek: ui.selectedWeek,
+    shiftTypeNames: data.shiftTypeNames,
+    getMemberName: data.getMemberName,
+    notify: ui.showToast
+  });
+}
 </script>

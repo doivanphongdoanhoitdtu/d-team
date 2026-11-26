@@ -1,22 +1,27 @@
 {
   "name": "so-ca-truc-tdtu",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
-    "animejs": "^4.5.0",
     "chart.js": "^4.4.1",
     "firebase": "^12.17.1",
+    "lucide-vue-next": "^0.511.0",
+    "pinia": "^3.0.2",
     "vue": "^3.4.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
     "@vitejs/plugin-vue": "^5.2.1",
-    "vite": "^6.2.0"
+    "tailwindcss": "^4.1.4",
+    "vite": "^6.2.0",
+    "vitest": "^3.1.2"
   }
 }

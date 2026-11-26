@@ -1,164 +1,172 @@
 <template>
-  <div class="space-y-4 sm:space-y-6">
-    <!-- Notice / Header -->
-    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
-      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4 sm:mb-6">
+  <div class="space-y-5">
+    <!-- Check-in Form Card -->
+    <section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6">
+      <div class="pb-4 mb-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
         <div>
-          <h2 class="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <i class="fa-solid fa-pen-to-square text-indigo-600 dark:text-indigo-400"></i> Điểm Danh Ca Trực Đã Hoàn Thành (Sổ Gốc)
+          <h2 class="text-base font-bold text-slate-900 dark:text-white">
+            Điểm danh ca trực (Sổ gốc)
           </h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Ghi nhận thông tin trực từ sổ giấy vào hệ thống để theo dõi chỉ tiêu ca trực</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Ghi nhận thông tin trang sổ và STT sau khi hoàn thành ca trực tại văn phòng.
+          </p>
         </div>
-        <span class="text-xs font-bold px-3 py-1 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded-full border border-indigo-200 dark:border-indigo-800 hidden sm:inline-block">
-          Sổ Gốc Ca Trực
+        <span class="hidden sm:inline-flex px-2.5 py-1 rounded-md bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800 text-xs font-semibold">
+          Hôm nay: {{ formatDate(today) }}
         </span>
       </div>
 
-      <!-- Case 1: Member has NO registered shift today -->
-      <div v-if="currentUserRole !== 'admin' && todayMemberRegistrations.length === 0"
-           class="py-8 px-4 text-center space-y-4 border border-dashed border-amber-300 dark:border-amber-800/80 rounded-2xl bg-amber-50/40 dark:bg-amber-950/20">
-        <div class="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center text-3xl mx-auto shadow-inner">
-          <i class="fa-solid fa-calendar-xmark"></i>
-        </div>
-        <div class="max-w-md mx-auto space-y-1.5">
-          <h3 class="text-base sm:text-lg font-black text-slate-800 dark:text-white">
-            Hôm Nay Bạn Không Có Ca Trực Đã Đăng Ký
+      <!-- Member with no shift registered today -->
+      <div
+        v-if="!auth.isAdmin && todayMyRegs.length === 0"
+        class="py-8 px-4 text-center rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 space-y-3"
+      >
+        <CalendarX2 class="w-8 h-8 text-slate-400 mx-auto" />
+        <div class="max-w-md mx-auto space-y-1">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">
+            Hôm nay ({{ formatDate(today) }}) bạn chưa có lịch trực
           </h3>
-          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-            Hôm nay (<strong>{{ formatDate(todayDate) }}</strong>) bạn không có lịch trực nào. Theo quy định, thành viên chỉ được điểm danh khi tới ca làm đã đăng ký trước. Hệ thống không mở điểm danh cho những ngày không có ca đăng ký.
+          <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Theo quy định, thành viên chỉ thực hiện điểm danh đúng vào ngày có ca trực đã đăng ký trước.
           </p>
         </div>
-
-        <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
-          <button @click="$emit('go-tab', 'my-shifts')"
-                  class="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
-            <i class="fa-solid fa-clipboard-user"></i> Xem Ca Đã Đăng Ký
+        <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
+          <button
+            type="button"
+            @click="ui.currentTab = 'my-shifts'"
+            class="px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+          >
+            Xem lịch của tôi
           </button>
-          <button @click="$emit('go-tab', 'register')"
-                  class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
-            <i class="fa-solid fa-calendar-plus"></i> Đăng Ký Ca Trực Mới
+          <button
+            type="button"
+            @click="ui.currentTab = 'register'"
+            class="px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold cursor-pointer"
+          >
+            Đăng ký ca trực
           </button>
         </div>
       </div>
 
-      <!-- Case 2: Admin OR Member has registered shift today -->
-      <form v-else @submit.prevent="$emit('save-shift')" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          <!-- Thành Viên Trực -->
+      <!-- Entry Form -->
+      <form v-else @submit.prevent="handleSubmit" class="space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Member -->
           <div class="sm:col-span-2">
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
-              Thành Viên Trực <span class="text-red-500">*</span>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Thành viên trực <span class="text-[#c8102e]">*</span>
             </label>
-            <!-- Admin: Select member with quick search -->
-            <div v-if="currentUserRole === 'admin'" class="space-y-1.5">
+            <div v-if="auth.isAdmin" class="space-y-2">
               <div class="relative">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
-                  <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                </span>
-                <input type="text" v-model="memberSearch" placeholder="Lọc nhanh thành viên theo MSSV hoặc Họ tên..."
-                       class="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-9 pr-8 py-2 text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-400">
-                <button v-if="memberSearch" @click="memberSearch = ''" type="button"
-                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer">
-                  <i class="fa-solid fa-circle-xmark text-xs"></i>
-                </button>
+                <Search class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  v-model="memberSearch"
+                  type="text"
+                  placeholder="Lọc nhanh theo MSSV, Họ tên hoặc Ban..."
+                  class="w-full pl-8 pr-8 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+                />
               </div>
-              <select v-model="shiftForm.memberId" required
-                      class="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white dark:bg-slate-900 dark:text-white min-h-[44px]">
+              <select
+                v-model="form.memberId"
+                required
+                class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+              >
                 <option value="" disabled>-- Chọn thành viên ({{ filteredMembers.length }}) --</option>
                 <option v-for="m in filteredMembers" :key="m.id" :value="m.id">
-                  [{{ m.id }}] {{ m.name }} - {{ m.department || 'Ban chưa đặt' }}
+                  [{{ m.id }}] {{ m.name }} — {{ m.department || 'Chưa phân ban' }}
                 </option>
               </select>
             </div>
-            <!-- Member: Display current member info (Cannot change) -->
-            <div v-else class="w-full border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-slate-50 dark:bg-slate-800 flex items-center justify-between min-h-[44px]">
-              <span class="text-sm font-bold text-slate-800 dark:text-white">
-                [{{ loggedInMemberId }}] {{ getMemberName(loggedInMemberId) }}
+            <div
+              v-else
+              class="px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between"
+            >
+              <span class="font-semibold text-slate-900 dark:text-white">
+                <span class="font-mono text-brand-700 dark:text-brand-400 mr-1.5">{{ auth.loggedInMemberId }}</span>
+                {{ data.getMemberName(auth.loggedInMemberId) }}
               </span>
-              <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
-                Thành viên
-              </span>
+              <span class="text-[11px] font-medium text-slate-500">Thành viên</span>
             </div>
           </div>
 
-          <!-- Ngày Trực (Điểm Danh) -->
+          <!-- Date -->
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
-              Ngày Trực (Điểm Danh) <span class="text-red-500">*</span>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ngày trực <span class="text-[#c8102e]">*</span>
             </label>
-            <!-- Admin: Cho phép chọn mọi ngày (date picker) -->
-            <template v-if="currentUserRole === 'admin'">
-              <input type="date" v-model="shiftForm.date" required
-                     class="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[44px] font-bold bg-white dark:bg-slate-900 dark:text-white">
-              <p class="text-[11px] text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 p-2 rounded-lg border border-indigo-200 dark:border-indigo-800 mt-1.5 font-bold flex items-center gap-1.5 leading-snug">
-                <i class="fa-solid fa-user-shield text-indigo-600 dark:text-indigo-400 shrink-0"></i> Quyền Quản trị viên: Được phép chọn tất cả các ngày (bao gồm các ngày trước đó) để ghi nhận / điểm danh bù cho thành viên.
-              </p>
-            </template>
-            <!-- Member: KHÓA CỐ ĐỊNH NGÀY HÔM NAY - Tuyệt đối không dùng input date để tránh mở popup lịch chọn ngày không đăng ký -->
-            <template v-else>
-              <div class="w-full border border-emerald-300 dark:border-emerald-700 rounded-lg p-2.5 bg-emerald-50/60 dark:bg-emerald-950/30 flex items-center justify-between min-h-[44px]">
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-calendar-check text-emerald-600"></i>
-                  <span class="text-sm font-black text-slate-800 dark:text-white">
-                    Hôm nay: {{ formatDate(todayDate) }}
-                  </span>
-                </div>
-                <span class="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border border-emerald-300">
-                  ✓ Đã đăng ký ca
-                </span>
-              </div>
-              <p class="text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-lg border border-emerald-300 dark:border-emerald-800 mt-1.5 font-bold flex items-center gap-1.5 leading-snug">
-                <i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i> Điểm danh hôm nay: Hệ thống đã khóa cố định ngày trực hôm nay theo ca bạn đã đăng ký.
-              </p>
-            </template>
+            <input
+              v-if="auth.isAdmin"
+              v-model="form.date"
+              type="date"
+              required
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-brand-600"
+            />
+            <div
+              v-else
+              class="px-3 py-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 font-semibold flex items-center justify-between"
+            >
+              <span class="tabular-nums">{{ formatDate(today) }} (Hôm nay)</span>
+              <CheckCircle2 class="w-4 h-4" />
+            </div>
           </div>
 
-          <!-- Ca Trực -->
+          <!-- Shift Type -->
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
-              Ca Trực <span class="text-red-500">*</span>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ca trực <span class="text-[#c8102e]">*</span>
             </label>
-            <select v-model="shiftForm.shiftType" required
-                    class="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white dark:bg-slate-900 dark:text-white min-h-[44px] font-bold">
-              <option v-for="st in memberShiftOptions" :key="st.id || st.name" :value="st.name || st.id">
-                {{ st.name }} {{ st.time ? '(' + st.time + ')' : '' }}
+            <select
+              v-model="form.shiftType"
+              required
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-brand-600"
+            >
+              <option v-for="st in availableShiftOptions" :key="st.id || st.name" :value="st.name || st.id">
+                {{ st.name }} {{ st.time ? `(${st.time})` : '' }}
               </option>
             </select>
-
-            <!-- Cảnh báo nếu ca này đã được điểm danh -->
-            <div v-if="currentUserRole !== 'admin' && isShiftAlreadyRecorded(shiftForm.shiftType)"
-                 class="text-[11px] text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 p-2 rounded-lg border border-rose-300 dark:border-rose-800 mt-1.5 font-bold flex items-center gap-1.5 leading-snug">
-              <i class="fa-solid fa-triangle-exclamation text-rose-600 shrink-0"></i> Bạn đã điểm danh ca này trong ngày hôm nay rồi! Không thể điểm danh lại.
-            </div>
-            <p v-else-if="currentUserRole !== 'admin'" class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
-              🗓️ Ca bạn đã đăng ký hôm nay: <strong class="text-indigo-600 dark:text-indigo-400">{{ todayMemberRegistrations.map(r => r.shiftType).join(', ') }}</strong>
+            <p v-if="!auth.isAdmin && isAlreadyCheckedIn" class="text-[11px] text-[#c8102e] dark:text-red-400 font-medium mt-1">
+              Bạn đã điểm danh ca này hôm nay.
             </p>
           </div>
 
-          <!-- Trang Số -->
+          <!-- Page & STT -->
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1 flex items-center justify-between">
-              <span>Trang Số <span class="text-red-500">*</span></span>
-              <span class="text-[10px] text-indigo-600 dark:text-indigo-400 normal-case">(Trong sổ giấy)</span>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Trang số (sổ giấy) <span class="text-[#c8102e]">*</span>
             </label>
-            <input type="number" min="1" v-model="shiftForm.pageNo" required placeholder="VD: 12"
-                   class="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[44px] bg-white dark:bg-slate-900 dark:text-white">
+            <input
+              v-model.number="form.pageNo"
+              type="number"
+              min="1"
+              required
+              placeholder="VD: 12"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white tabular-nums focus:outline-none focus:border-brand-600"
+            />
           </div>
 
-          <!-- STT Trang -->
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1 flex items-center justify-between">
-              <span>STT Trang <span class="text-red-500">*</span></span>
-              <span class="text-[10px] text-indigo-600 dark:text-indigo-400 normal-case">(Trong sổ giấy)</span>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              STT trong trang <span class="text-[#c8102e]">*</span>
             </label>
-            <input type="number" min="1" v-model="shiftForm.sttNo" required placeholder="VD: 5"
-                   class="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[44px] bg-white dark:bg-slate-900 dark:text-white">
+            <input
+              v-model.number="form.sttNo"
+              type="number"
+              min="1"
+              required
+              placeholder="VD: 5"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white tabular-nums focus:outline-none focus:border-brand-600"
+            />
           </div>
 
-          <!-- Trạng Thái Ca Trực -->
+          <!-- Status -->
           <div class="sm:col-span-2">
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Trạng Thái Ca Trực</label>
-            <select v-model="shiftForm.status" class="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white dark:bg-slate-900 dark:text-white min-h-[44px]">
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Trạng thái ca trực
+            </label>
+            <select
+              v-model="form.status"
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+            >
               <option value="Đúng giờ">Đúng giờ</option>
               <option value="Đi trễ">Đi trễ</option>
               <option value="Về sớm">Về sớm</option>
@@ -166,189 +174,191 @@
             </select>
           </div>
 
-          <!-- Ghi Chú / Bàn Giao Ca -->
+          <!-- Notes -->
           <div class="sm:col-span-2">
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Ghi Chú / Bàn Giao Ca</label>
-            <textarea v-model="shiftForm.notes" rows="2" placeholder="Ghi nhận bàn giao hoặc thông tin chú ý..."
-                      class="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[60px] bg-white dark:bg-slate-900 dark:text-white"></textarea>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ghi chú / bàn giao ca
+            </label>
+            <textarea
+              v-model="form.notes"
+              rows="2"
+              placeholder="Ghi nhận bàn giao hồ sơ hoặc thông tin cần lưu ý..."
+              class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+            ></textarea>
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <button type="button" @click="$emit('reset-form')" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-xs transition active:scale-95 cursor-pointer">
-            Làm Mới
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <button
+            type="button"
+            @click="resetForm"
+            class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+          >
+            Làm mới
           </button>
-          <button type="submit"
-                  :disabled="currentUserRole !== 'admin' && isShiftAlreadyRecorded(shiftForm.shiftType)"
-                  class="px-6 py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2 active:scale-95 cursor-pointer"
-                  :class="currentUserRole !== 'admin' && isShiftAlreadyRecorded(shiftForm.shiftType)
-                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Lưu Đồng Bộ
+          <button
+            type="submit"
+            :disabled="!auth.isAdmin && isAlreadyCheckedIn"
+            class="px-5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save class="w-4 h-4" />
+            <span>Lưu điểm danh</span>
           </button>
         </div>
       </form>
-    </div>
+    </section>
 
-    <!-- Recent Shifts Preview List -->
-    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-          <i class="fa-solid fa-clock-rotate-left text-indigo-600 dark:text-indigo-400"></i> Ca Trực Mới Ghi Nhận
-        </h3>
+    <!-- Recent Shifts -->
+    <section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Ca trực mới ghi nhận</h3>
         <div class="flex items-center gap-2">
-          <div class="relative w-full sm:w-56">
-            <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 pointer-events-none">
-              <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
-            </span>
-            <input type="text" v-model="recentSearch" placeholder="Lọc tên, MSSV ca mới..."
-                   class="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-7 py-1 text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-400">
-            <button v-if="recentSearch" @click="recentSearch = ''" type="button"
-                    class="absolute inset-y-0 right-0 pr-2 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer">
-              <i class="fa-solid fa-circle-xmark text-[11px]"></i>
-            </button>
+          <div class="relative flex-1 sm:w-56">
+            <Search class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              v-model="recentSearch"
+              type="text"
+              placeholder="Lọc tên, MSSV, ca..."
+              class="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+            />
           </div>
-          <button @click="$emit('go-tab', 'history')" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold cursor-pointer shrink-0">Xem tất cả</button>
+          <button
+            v-if="auth.isAdmin"
+            type="button"
+            @click="ui.currentTab = 'history'"
+            class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline shrink-0 cursor-pointer"
+          >
+            Xem nhật ký
+          </button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        <div v-for="s in displayedRecentShifts" :key="s.id" class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
-          <div class="flex items-center justify-between font-bold text-slate-800 dark:text-white">
-            <span>{{ getMemberName(s.memberId) }}</span>
-            <span class="px-2 py-0.5 text-[10px] rounded-md font-extrabold"
-                  :class="s.status === 'Đúng giờ' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'">
+      <div v-if="recentShifts.length === 0" class="py-6 text-center text-xs text-slate-400">
+        Chưa có ca trực nào trong kỳ báo cáo này.
+      </div>
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div
+          v-for="s in recentShifts"
+          :key="s.id"
+          class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 text-xs space-y-1"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold text-slate-900 dark:text-white truncate">{{ data.getMemberName(s.memberId) }}</span>
+            <span
+              class="px-2 py-0.5 rounded text-[11px] font-semibold shrink-0"
+              :class="s.status === 'Đúng giờ'
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
+                : 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'"
+            >
               {{ s.status }}
             </span>
           </div>
-          <div class="text-slate-500 dark:text-slate-400 font-medium">
-            🗓️ {{ formatDate(s.date) }} • {{ s.shiftType }}
+          <div class="text-slate-500 dark:text-slate-400 tabular-nums">
+            {{ formatDate(s.date) }} · {{ s.shiftType }}
           </div>
-          <div class="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
-            Sổ gốc: Trang {{ s.pageNo }} - STT {{ s.sttNo }}
+          <div class="text-[11px] font-medium text-brand-700 dark:text-brand-400 tabular-nums">
+            Sổ gốc: Trang {{ s.pageNo }} — STT {{ s.sttNo }}
           </div>
         </div>
       </div>
-      <div v-if="displayedRecentShifts.length === 0" class="text-center py-4 text-xs text-slate-400">
-        Không có ca trực nào phù hợp với tìm kiếm.
-      </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { CalendarX2, Search, CheckCircle2, Save } from 'lucide-vue-next';
+import { useDataStore } from '../../stores/data.js';
+import { useAuthStore } from '../../stores/auth.js';
+import { useUiStore } from '../../stores/ui.js';
+import { getTodayStr, formatDate } from '../../utils/date.js';
 
-const props = defineProps([
-  'shiftForm',
-  'members',
-  'shiftTypes',
-  'currentUserRole',
-  'todayDate',
-  'shifts',
-  'registrations',
-  'loggedInMemberId',
-  'getMemberName',
-  'formatDate'
-]);
+const data = useDataStore();
+const auth = useAuthStore();
+const ui = useUiStore();
 
-defineEmits(['save-shift', 'reset-form', 'go-tab']);
-
+const today = computed(() => getTodayStr());
 const memberSearch = ref('');
 const recentSearch = ref('');
 
+const form = ref({
+  memberId: auth.loggedInMemberId,
+  date: getTodayStr(),
+  shiftType: data.shiftTypes[0]?.name || 'Ca 1',
+  pageNo: '',
+  sttNo: '',
+  status: 'Đúng giờ',
+  notes: ''
+});
+
 const filteredMembers = computed(() => {
-  if (!props.members || !Array.isArray(props.members)) return [];
-  const q = (memberSearch.value || '').trim().toLowerCase();
-  if (!q) return props.members;
-  return props.members.filter(m => {
-    const name = String(m.name || '').toLowerCase();
-    const id = String(m.id || m.mssv || '').toLowerCase();
-    const dept = String(m.department || '').toLowerCase();
-    return name.includes(q) || id.includes(q) || dept.includes(q);
-  });
-});
-
-const displayedRecentShifts = computed(() => {
-  const allShifts = props.shifts || [];
-  const q = (recentSearch.value || '').trim().toLowerCase();
-  if (!q) return allShifts.slice(0, 6);
-  return allShifts.filter(s => {
-    const name = String(props.getMemberName(s.memberId) || '').toLowerCase();
-    const id = String(s.memberId || '').toLowerCase();
-    const shift = String(s.shiftType || '').toLowerCase();
-    return name.includes(q) || id.includes(q) || shift.includes(q);
-  }).slice(0, 6);
-});
-
-const dynamicShiftTypes = computed(() => {
-  if (props.shiftTypes && Array.isArray(props.shiftTypes) && props.shiftTypes.length > 0) {
-    return props.shiftTypes;
-  }
-  return [
-    { id: 'Ca 1', name: 'Ca 1', time: '7h30 - 9h20' },
-    { id: 'Ca 2', name: 'Ca 2', time: '9h20 - 11h30' },
-    { id: 'Ca 3', name: 'Ca 3', time: '13h00 - 15h20' },
-    { id: 'Ca 4', name: 'Ca 4', time: '15h20 - 17h00' }
-  ];
-});
-
-// Danh sách các ca mà thành viên đăng nhập đã đăng ký trong ngày hôm nay
-const todayMemberRegistrations = computed(() => {
-  if (props.currentUserRole === 'admin') return [];
-  const mId = props.loggedInMemberId;
-  if (!mId) return [];
-  return (props.registrations || []).filter(r =>
-    String(r.memberId).trim().toLowerCase() === String(mId).trim().toLowerCase() &&
-    r.date === props.todayDate
+  const q = memberSearch.value.trim().toLowerCase();
+  if (!q) return data.members;
+  return data.members.filter(
+    (m) => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || (m.department || '').toLowerCase().includes(q)
   );
 });
 
-// Danh sách ca để chọn: Admin thấy hết, Thành viên chỉ thấy ca đã đăng ký hôm nay
-const memberShiftOptions = computed(() => {
-  if (props.currentUserRole === 'admin') {
-    return dynamicShiftTypes.value;
-  }
-  const registeredTypes = todayMemberRegistrations.value.map(r => r.shiftType);
-  return dynamicShiftTypes.value.filter(st => registeredTypes.includes(st.name || st.id));
+const todayMyRegs = computed(() => {
+  if (auth.isAdmin) return [];
+  return data.registrations.filter((r) => r.memberId === auth.loggedInMemberId && r.date === today.value);
 });
 
-// Kiểm tra xem ca này trong ngày hôm nay đã được điểm danh chưa
-const isShiftAlreadyRecorded = (shiftType) => {
-  if (!shiftType) return false;
-  const mId = props.currentUserRole === 'admin' ? props.shiftForm?.memberId : props.loggedInMemberId;
-  const date = props.currentUserRole === 'admin' ? props.shiftForm?.date : props.todayDate;
-  if (!mId || !date) return false;
-  return (props.shifts || []).some(s =>
-    String(s.memberId).trim().toLowerCase() === String(mId).trim().toLowerCase() &&
-    s.date === date &&
-    s.shiftType === shiftType
-  );
-};
+const availableShiftOptions = computed(() => {
+  if (auth.isAdmin) return data.shiftTypes;
+  const regTypes = new Set(todayMyRegs.value.map((r) => r.shiftType));
+  return data.shiftTypes.filter((st) => regTypes.has(st.name || st.id));
+});
 
-// Đồng bộ form tự động cho thành viên: Gán ngày hôm nay, memberId và chọn ca trực hợp lệ
-const syncMemberForm = () => {
-  if (props.currentUserRole !== 'admin') {
-    if (props.loggedInMemberId && props.shiftForm) {
-      props.shiftForm.memberId = props.loggedInMemberId;
-    }
-    if (props.todayDate && props.shiftForm) {
-      props.shiftForm.date = props.todayDate;
-    }
-    if (todayMemberRegistrations.value.length > 0 && props.shiftForm) {
-      const availableTypes = todayMemberRegistrations.value.map(r => r.shiftType);
-      if (!availableTypes.includes(props.shiftForm.shiftType)) {
-        props.shiftForm.shiftType = availableTypes[0];
-      }
-    }
-  }
-};
+const isAlreadyCheckedIn = computed(() => {
+  if (!form.value.shiftType) return false;
+  const mId = auth.isAdmin ? form.value.memberId : auth.loggedInMemberId;
+  const d = auth.isAdmin ? form.value.date : today.value;
+  return data.shifts.some((s) => s.memberId === mId && s.date === d && s.shiftType === form.value.shiftType);
+});
 
 watch(
-  () => [props.currentUserRole, props.loggedInMemberId, props.todayDate, todayMemberRegistrations.value],
+  () => [auth.isAdmin, auth.loggedInMemberId, todayMyRegs.value],
   () => {
-    syncMemberForm();
+    if (!auth.isAdmin) {
+      form.value.memberId = auth.loggedInMemberId;
+      form.value.date = today.value;
+      const first = todayMyRegs.value[0]?.shiftType;
+      if (first && !todayMyRegs.value.some((r) => r.shiftType === form.value.shiftType)) {
+        form.value.shiftType = first;
+      }
+    }
   },
   { immediate: true }
 );
+
+function resetForm() {
+  form.value = {
+    memberId: auth.isAdmin ? form.value.memberId : auth.loggedInMemberId,
+    date: getTodayStr(),
+    shiftType: availableShiftOptions.value[0]?.name || 'Ca 1',
+    pageNo: '',
+    sttNo: '',
+    status: 'Đúng giờ',
+    notes: ''
+  };
+}
+
+async function handleSubmit() {
+  const ok = await data.saveShift({ ...form.value });
+  if (ok) resetForm();
+}
+
+const recentShifts = computed(() => {
+  const list = data.getShiftsForPeriod(ui.selectedMonth, ui.selectedWeek, auth.currentUserRole, auth.loggedInMemberId);
+  const q = recentSearch.value.trim().toLowerCase();
+  const filtered = q
+    ? list.filter((s) =>
+        data.getMemberName(s.memberId).toLowerCase().includes(q) ||
+        s.memberId.toLowerCase().includes(q) ||
+        s.shiftType.toLowerCase().includes(q)
+      )
+    : list;
+  return filtered.slice(0, 6);
+});
 </script>

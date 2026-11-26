@@ -1,334 +1,150 @@
 <template>
-  <div class="flex-grow flex flex-col font-sans selection:bg-indigo-500 selection:text-white" :class="{ 'dark-mode': isDarkMode }">
-    <!-- Network Offline Status Banner -->
-    <NetworkStatusBanner :isOnline="isOnline" :isChecking="isCheckingNetwork" @retry="checkNetworkStatus(initCloudRealtime)" />
+  <div class="min-h-screen flex flex-col">
+    <NetworkStatusBanner @retry="ui.checkNetworkStatus(() => data.initCloud(false))" />
+    <Toast />
 
-    <!-- Toast Alert Component -->
-    <Toast :toast="toast" />
+    <!-- Unauthenticated View -->
+    <LoginGatekeeper v-if="!auth.isLoggedIn" />
 
-    <!-- App Authentication / Workspace View Cross-Fade -->
-    <Transition name="fade-app" mode="out-in">
-      <!-- Fullscreen Login Gatekeeper Component -->
-      <LoginGatekeeper v-if="!isLoggedIn"
-                       key="login-gate"
-                       v-model:loginRole="loginRole"
-                       :loginForm="loginForm"
-                       :isCloudConnected="isCloudConnected"
-                       :hasFirebaseConfig="hasFirebaseConfig"
-                       @login="handleLoginWithTabReset"
-                       @retry-cloud="initCloudRealtime" />
+    <!-- Authenticated App Shell -->
+    <div v-else class="flex-1 flex flex-col lg:pl-64">
+      <AppSidebar :primary-tabs="primaryTabs" :admin-tabs="adminTabs" />
 
-      <!-- Master App Workspace Layout -->
-      <div v-else key="master-app" class="flex-grow flex flex-col">
-        <!-- App Header Component -->
-        <AppHeader :isDarkMode="isDarkMode"
-                   :currentUserRole="currentUserRole"
-                   :loggedInMemberId="loggedInMemberId"
-                   :isCloudConnected="isCloudConnected"
-                   :hasFirebaseConfig="hasFirebaseConfig"
-                   :cloudStatusText="cloudStatusText"
-                   :userRoleBadgeText="userRoleBadgeText"
-                   :unreadNotificationCount="unreadNotificationCount"
-                   @toggle-theme="toggleTheme"
-                   @open-config="openConfigModal"
-                   @open-notifications="showNotificationModal = true"
-                   @logout="logout" />
+      <AppTopBar
+        :active-tab-title="activeTabMeta.label"
+        :active-tab-subtitle="activeTabMeta.subtitle"
+        :unread-count="unreadCount"
+      />
 
-        <!-- App Navigation Component -->
-        <AppNavigation :currentTab="currentTab" :tabs="tabs" @select-tab="currentTab = $event" />
+      <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-5 pb-24 lg:pb-8 space-y-5">
+        <!-- Password Upgrade Recommendation Banner for Migrated Admins -->
+        <div
+          v-if="auth.isAdmin && auth.needsPasswordUpgradeNotice"
+          class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-xs no-print"
+        >
+          <span class="text-amber-900 dark:text-amber-200 font-medium">
+            Mật khẩu quản trị đã được nâng cấp mã hóa PBKDF2-SHA256. Bạn nên đặt mật khẩu mới mạnh hơn để tăng bảo mật.
+          </span>
+          <button
+            type="button"
+            @click="ui.showChangePasswordModal = true"
+            class="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white font-semibold cursor-pointer"
+          >
+            Đổi mật khẩu ngay
+          </button>
+        </div>
 
-        <!-- Main Content Tabs Body -->
-        <main ref="mainContentRef" class="flex-grow w-full px-3 sm:px-6 lg:px-8 py-4 pb-36 sm:pb-8 space-y-4">
-          <!-- Global Filter Bar (Month & Week selection) -->
-          <div v-if="['entry', 'register', 'dashboard', 'history', 'my-shifts'].includes(currentTab)"
-               class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 no-print">
-            <div class="flex flex-wrap items-center gap-2 text-xs">
-              <span class="font-bold text-slate-700 flex items-center gap-1.5">
-                <i class="fa-solid fa-calendar-days text-indigo-600"></i> Tháng Báo Cáo:
-              </span>
-              <input type="month" v-model="selectedMonth"
-                     class="border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50">
-            </div>
-
-            <div class="flex items-center gap-1 text-xs overflow-x-auto">
-              <button @click="selectedWeek = 'all'" class="px-3 py-1.5 rounded-xl font-bold transition cursor-pointer"
-                      :class="selectedWeek === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">Tất cả tuần</button>
-              <button @click="selectedWeek = '1'" class="px-3 py-1.5 rounded-xl font-bold transition cursor-pointer"
-                      :class="selectedWeek === '1' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">Tuần 1 (1-8)</button>
-              <button @click="selectedWeek = '2'" class="px-3 py-1.5 rounded-xl font-bold transition cursor-pointer"
-                      :class="selectedWeek === '2' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">Tuần 2 (9-18)</button>
-              <button @click="selectedWeek = '3'" class="px-3 py-1.5 rounded-xl font-bold transition cursor-pointer"
-                      :class="selectedWeek === '3' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">Tuần 3 (19-25)</button>
-              <button @click="selectedWeek = '4'" class="px-3 py-1.5 rounded-xl font-bold transition cursor-pointer"
-                      :class="selectedWeek === '4' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">Tuần 4 (26-Cuối)</button>
-            </div>
+        <!-- Global Month / Week Filter Bar -->
+        <div
+          v-if="showPeriodFilter"
+          class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs no-print"
+        >
+          <div class="flex items-center gap-2">
+            <Calendar class="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
+            <label for="global-month" class="font-semibold text-slate-700 dark:text-slate-300">Tháng báo cáo:</label>
+            <input
+              id="global-month"
+              v-model="ui.selectedMonth"
+              type="month"
+              class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-brand-600"
+            />
           </div>
 
-          <!-- TAB MỚI: QUẢN LÝ HOẠT ĐỘNG (ADMIN) HOẶC CỔNG HOẠT ĐỘNG (USER) -->
-          <div v-show="currentTab === 'activities'">
-            <!-- Admin View: Quản lý & Tạo hoạt động & Xem tổng lượt điểm danh -->
-            <AdminActivityManager v-if="currentUserRole === 'admin'"
-                                  :activities="activities"
-                                  :semesters="semesters"
-                                  :adminActivitySummaryStats="adminActivitySummaryStats"
-                                  :computeActivityDerivedFields="computeActivityDerivedFields"
-                                  :getActivityStats="getActivityStats"
-                                  :formatDate="formatDate"
-                                  @create-activity="createActivity"
-                                  @delete-activity="deleteActivity"
-                                  @add-semester="addSemester"
-                                  @delete-semester="deleteSemester"
-                                  @toggle-training-points="toggleTrainingPointsSubmitted"
-                                  @update-submit-date="updateActivitySubmitDate"
-                                  @export-excel="handleExportActivityExcel"
-                                  @open-detail="openActivityDetailModal" />
-
-            <!-- User View: Trang riêng tổng hợp hoạt động tháng, điểm danh, xin nghỉ -->
-            <UserActivityPortal v-else
-                                :activities="activities"
-                                v-model:selectedMonth="selectedMonth"
-                                :loggedInMemberId="loggedInMemberId"
-                                :activeMemberName="getMemberName(loggedInMemberId)"
-                                :activityRegistrations="activityRegistrations"
-                                :getUserCheckInRecord="getUserCheckInRecord"
-                                :getActivityDates="getActivityDates"
-                                :formatDate="formatDate"
-                                @check-in="handleUserActivityCheckIn"
-                                @open-leave-modal="openLeaveActivityModal"
-                                @register-activity-shift="registerActivityShift"
-                                @delete-activity-reg="deleteActivityRegistration" />
+          <div class="flex items-center gap-1 overflow-x-auto">
+            <button
+              type="button"
+              @click="ui.selectedWeek = 'all'"
+              class="px-2.5 py-1.5 rounded-lg font-semibold transition cursor-pointer shrink-0"
+              :class="ui.selectedWeek === 'all' ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'"
+            >
+              Cả tháng
+            </button>
+            <button
+              v-for="w in REPORTING_WEEKS"
+              :key="w.id"
+              type="button"
+              @click="ui.selectedWeek = w.id"
+              class="px-2.5 py-1.5 rounded-lg font-semibold transition cursor-pointer shrink-0"
+              :class="ui.selectedWeek === w.id ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'"
+            >
+              {{ w.label }} ({{ w.range }})
+            </button>
           </div>
+        </div>
 
-          <!-- Tab 1: Ghi ca -->
-          <TabShiftEntry v-show="currentTab === 'entry'"
-                         :shiftForm="shiftForm"
-                         :members="members"
-                         :shiftTypes="shiftTypes"
-                         :currentUserRole="currentUserRole"
-                         :todayDate="todayDate"
-                         :shifts="searchedShifts"
-                         :registrations="registrations"
-                         :loggedInMemberId="loggedInMemberId"
-                         :getMemberName="getMemberName"
-                         :formatDate="formatDate"
-                         @save-shift="saveShift"
-                         @reset-form="resetShiftForm"
-                         @go-tab="currentTab = $event" />
+        <!-- Active View (v-if so only active view mounts!) -->
+        <template v-if="ui.currentTab === 'activities'">
+          <AdminActivityManager v-if="auth.isAdmin" @open-detail="openActivityDetail" />
+          <UserActivityPortal v-else @open-leave-modal="openLeaveActivity" />
+        </template>
 
-          <!-- Tab 2: Đăng ký ca -->
-          <TabShiftRegister v-show="currentTab === 'register'"
-                            :regForm="regForm"
-                            :members="members"
-                            :currentUserRole="currentUserRole"
-                            :loggedInMemberId="loggedInMemberId"
-                            :filteredRegistrations="filteredRegistrations"
-                            :todayDate="todayDate"
-                            :shiftTypes="shiftTypes"
-                            :shiftSettings="shiftSettings"
-                            :getMemberName="getMemberName"
-                            :getMemberDept="getMemberDept"
-                            :formatDate="formatDate"
-                            :getWeekNameFromDate="getWeekNameFromDate"
-                            :getShiftRegisteredCount="getShiftRegisteredCount"
-                            :isShiftFullOnDate="isShiftFullOnDate"
-                            :isShiftTakenOnDate="isShiftTakenOnDate"
-                            :getTakenShiftsCountForDate="getTakenShiftsCountForDate"
-                            :isRegDateFull="isRegDateFull"
-                            @save-registration="saveRegistration"
-                            @delete-registration="confirmDeleteRegistration"
-                            @open-shift-settings="openShiftSettingsModal"
-                            @toggle-registration-open="toggleRegistrationOpen"
-                            @export-matrix-excel="exportShiftScheduleMatrixExcel(selectedMonth, filteredRegistrations)" />
+        <TabShiftEntry v-else-if="ui.currentTab === 'entry'" />
+        <TabShiftRegister v-else-if="ui.currentTab === 'register'" />
+        <TabMyRegisteredShifts v-else-if="ui.currentTab === 'my-shifts'" />
+        <TabLeaveRequests v-else-if="ui.currentTab === 'leave'" />
+        <TabDashboard v-else-if="ui.currentTab === 'dashboard' && auth.isAdmin" />
+        <TabShiftHistory v-else-if="ui.currentTab === 'history' && auth.isAdmin" />
+        <TabMembersList
+          v-else-if="ui.currentTab === 'members' && auth.isAdmin"
+          @open-member-modal="openMemberModal"
+          @open-batch="showBatchModal = true"
+        />
+      </main>
 
-          <!-- Tab Mới: Xem lại Ca Đã Đăng Ký (Ca trực tuần & Ca hoạt động) -->
-          <TabMyRegisteredShifts v-show="currentTab === 'my-shifts'"
-                                 :loggedInMemberId="loggedInMemberId"
-                                 :activeMemberName="getMemberName(loggedInMemberId)"
-                                 :activeMemberDept="getMemberDept(loggedInMemberId)"
-                                 :currentUserRole="currentUserRole"
-                                 :registrations="registrations"
-                                 :activityRegistrations="activityRegistrations"
-                                 :activities="activities"
-                                 :activityCheckIns="activityCheckIns"
-                                 :selectedMonth="selectedMonth"
-                                 :formatDate="formatDate"
-                                 :getWeekNameFromDate="getWeekNameFromDate"
-                                 :getMemberName="getMemberName"
-                                 :getMemberDept="getMemberDept"
-                                 @go-tab="currentTab = $event"
-                                 @delete-activity-reg="deleteActivityRegistration" />
+      <MobileBottomNav :all-tabs="allTabs" />
+    </div>
 
-          <!-- Tab 3: Đơn xin nghỉ phép -->
-          <TabLeaveRequests v-show="currentTab === 'leave'"
-                            :leaveForm="leaveForm"
-                            :members="members"
-                            :currentUserRole="currentUserRole"
-                            :availableRegisteredShifts="availableRegisteredShifts"
-                            :leaveListTitle="leaveListTitle"
-                            :pendingLeaveCount="pendingLeaveCount"
-                            v-model:leaveStatusFilter="leaveStatusFilter"
-                            :filteredLeaveRequests="filteredLeaveRequests"
-                            :getMemberName="getMemberName"
-                            :getMemberDept="getMemberDept"
-                            :formatDate="formatDate"
-                            :getLeaveStatusBadgeText="getLeaveStatusBadgeText"
-                            :formatCreatedAt="formatCreatedAt"
-                            @save-leave-request="saveLeaveRequest"
-                            @member-change="onLeaveMemberChange"
-                            @reg-select="onLeaveRegSelect"
-                            @update-leave-status="handleUpdateLeaveStatus" />
+    <!-- Global Modals -->
+    <ConfirmDeleteModal />
+    <ShiftSettingsModal />
+    <ConfigModal />
+    <ChangePasswordModal />
+    <NotificationModal />
 
-          <!-- Tab 4: Thống kê Dashboard & Biểu đồ -->
-          <TabDashboard v-show="currentTab === 'dashboard'"
-                        :currentTab="currentTab"
-                        :currentUserRole="currentUserRole"
-                        :filteredShifts="searchedShifts"
-                        :shiftTypes="shiftTypes"
-                        :personalShiftsCount="searchedShifts.filter(s => String(s.memberId).toUpperCase() === String(loggedInMemberId).toUpperCase()).length"
-                        :registrations="filteredRegistrations"
-                        :personalRegistrationsCount="filteredRegistrations.filter(r => String(r.memberId).toUpperCase() === String(loggedInMemberId).toUpperCase()).length"
-                        :targetPassRate="targetPassRate"
-                        :personalProgressPercent="personalProgressPercent"
-                        :membersPassingTargetCount="membersPassingTargetCount"
-                        :membersInProgressCount="membersInProgressCount"
-                        :membersZeroCount="membersZeroCount"
-                        :members="members"
-                        :selectedMonth="selectedMonth"
-                        :getMemberName="getMemberName"
-                        :getMemberDept="getMemberDept"
-                        :leaveRequests="filteredLeaveRequests"
-                        :personalLeaveRequests="filteredLeaveRequests.filter(l => String(l.memberId).toUpperCase() === String(loggedInMemberId).toUpperCase())"
-                        :pieChartTitle="pieChartTitle" />
-
-          <!-- Tab 5: Tra cứu Lịch sử ca trực -->
-          <TabShiftHistory v-show="currentTab === 'history'"
-                           :historySubtitle="historySubtitle"
-                           :historyFilter="historyFilter"
-                           :members="members"
-                           :searchedShifts="searchedShifts"
-                           :registrations="registrations"
-                           :filteredRegistrations="filteredRegistrations"
-                           :shifts="shifts"
-                           :shiftTypes="shiftTypes"
-                           :selectedMonth="selectedMonth"
-                           :selectedWeek="selectedWeek"
-                           :getMemberName="getMemberName"
-                           :getMemberDept="getMemberDept"
-                           :formatDate="formatDate"
-                           @export-excel="exportToExcel"
-                           @export-matrix-excel="exportShiftScheduleMatrixExcel(selectedMonth, $event || filteredRegistrations)" />
-
-          <!-- Tab 6: Quản lý Danh sách Thành viên -->
-          <TabMembersList v-show="currentTab === 'members'"
-                          :currentUserRole="currentUserRole"
-                          :members="members"
-                          :departments="departments"
-                          v-model:memberFilterSearch="memberFilterSearch"
-                          v-model:memberFilterDept="memberFilterDept"
-                          v-model:memberFilterTarget="memberFilterTarget"
-                          :filteredMembersList="filteredMembersList"
-                          :selectedMonth="selectedMonth"
-                          :getInitials="getInitials"
-                          :getDeptColorClass="getDeptColorClass"
-                          :formatDate="formatDate"
-                          @push-cloud="pushAllMembersToCloud"
-                          @open-batch="openBatchModal"
-                          @open-member-modal="openMemberModal"
-                          @confirm-delete-member="confirmDeleteMember"
-                          @reset-filters="resetMemberFilters" />
-        </main>
-      </div>
-    </Transition>
-
-    <!-- Modals -->
-    <ShiftSettingsModal :show="showShiftSettingsModal"
-                        :shiftSettings="shiftSettings"
-                        @close="showShiftSettingsModal = false"
-                        @save="saveShiftSettings"
-                        @reset-default="resetShiftSettingsToDefault" />
-
-    <ConfigModal :show="showConfigModal"
-                 v-model:configInput="configInput"
-                 @close="showConfigModal = false"
-                 @save="saveFirebaseConfig"
-                 @reset-default="resetConfigToDefault" />
-
-    <MemberModal :show="showMemberModal"
-                 :editingMember="editingMember"
-                 :memberForm="memberForm"
-                 :departments="departments"
-                 @close="showMemberModal = false"
-                 @save="saveMember"
-                 @add-department="addDepartment" />
-
-    <BatchImportModal :show="showBatchModal"
-                      v-model:batchText="batchText"
-                      @close="showBatchModal = false"
-                      @save="saveBatchMembers" />
-
-    <ConfirmDeleteModal :deleteModal="deleteModal" />
-
-    <!-- Modals cho Quản lý Hoạt Động & Điểm danh -->
-    <ActivityDetailModal :show="showActivityDetailModal"
-                         :activity="selectedActivityForDetail"
-                         :stats="selectedActivityForDetail ? getActivityStats(selectedActivityForDetail.id) : {}"
-                         :members="members"
-                         :leaveRequests="leaveRequests"
-                         :activityRegistrations="activityRegistrations"
-                         :formatDate="formatDate"
-                         @close="showActivityDetailModal = false"
-                         @admin-checkin="handleAdminCheckInActivity"
-                         @export-excel="exportActivityExcel($event, getActivityStats($event.id), members.value)" />
-
-    <LeaveActivityModal :show="showLeaveActivityModal"
-                        :activity="selectedActivityForLeave"
-                        :registeredShifts="userRegisteredShiftsForLeave"
-                        :formatDate="formatDate"
-                        @close="showLeaveActivityModal = false"
-                        @confirm="handleConfirmLeaveActivity" />
-
-    <!-- Notification Center Modal -->
-    <NotificationModal :show="showNotificationModal"
-                       :currentUserRole="currentUserRole"
-                       :loggedInMemberId="loggedInMemberId"
-                       :registrations="registrations"
-                       :shifts="searchedShifts"
-                       :leaveRequests="leaveRequests"
-                       :activities="activities"
-                       :pendingLeaveCount="pendingLeaveCount"
-                       :todayDate="todayDate"
-                       :formatDate="formatDate"
-                       :getMemberName="getMemberName"
-                       @close="showNotificationModal = false"
-                       @open-config="showNotificationModal = false; openConfigModal()"
-                       @go-tab="currentTab = $event" />
+    <MemberModal
+      :show="showMemberModal"
+      :editing-member="editingMember"
+      @close="showMemberModal = false"
+    />
+    <BatchImportModal
+      :show="showBatchModal"
+      @close="showBatchModal = false"
+    />
+    <ActivityDetailModal
+      :show="showActivityDetail"
+      :activity="selectedActivityForDetail"
+      @close="showActivityDetail = false"
+    />
+    <LeaveActivityModal
+      :show="showLeaveActivity"
+      :activity="selectedActivityForLeave"
+      @close="showLeaveActivity = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import {
+  Calendar, CalendarCheck, PenSquare, CalendarPlus, ClipboardList,
+  FilePenLine, BarChart3, History, Users
+} from 'lucide-vue-next';
 
-// Composables
-import { useToast } from './composables/useToast.js';
-import { useTheme } from './composables/useTheme.js';
-import { useAuth } from './composables/useAuth.js';
-import { useCloud } from './composables/useCloud.js';
-import { useMembers } from './composables/useMembers.js';
-import { useShifts } from './composables/useShifts.js';
-import { useActivities } from './composables/useActivities.js';
-import { useHaptics } from './composables/useHaptics.js';
-import { useNetwork } from './composables/useNetwork.js';
-import { useNotifications } from './composables/useNotifications.js';
-import * as XLSX from 'xlsx';
-import { exportExcelFile } from './utils/fileExport.js';
-import { useAnime } from './composables/useAnime.js';
+import { useUiStore } from './stores/ui.js';
+import { useAuthStore } from './stores/auth.js';
+import { useDataStore } from './stores/data.js';
+import { REPORTING_WEEKS, getTodayStr } from './utils/date.js';
+import { registerServiceWorker, syncUpcomingShiftReminders, clearAllShiftReminders } from './utils/notifications.js';
 
-// Components
 import Toast from './components/common/Toast.vue';
 import NetworkStatusBanner from './components/common/NetworkStatusBanner.vue';
-import AppHeader from './components/common/AppHeader.vue';
-import AppNavigation from './components/common/AppNavigation.vue';
+import AppSidebar from './components/common/AppSidebar.vue';
+import AppTopBar from './components/common/AppTopBar.vue';
+import MobileBottomNav from './components/common/MobileBottomNav.vue';
 import LoginGatekeeper from './components/auth/LoginGatekeeper.vue';
+
+import AdminActivityManager from './components/activities/AdminActivityManager.vue';
+import UserActivityPortal from './components/activities/UserActivityPortal.vue';
 import TabShiftEntry from './components/tabs/TabShiftEntry.vue';
 import TabShiftRegister from './components/tabs/TabShiftRegister.vue';
 import TabMyRegisteredShifts from './components/tabs/TabMyRegisteredShifts.vue';
@@ -336,522 +152,198 @@ import TabLeaveRequests from './components/tabs/TabLeaveRequests.vue';
 import TabDashboard from './components/tabs/TabDashboard.vue';
 import TabShiftHistory from './components/tabs/TabShiftHistory.vue';
 import TabMembersList from './components/tabs/TabMembersList.vue';
-import AdminActivityManager from './components/activities/AdminActivityManager.vue';
-import UserActivityPortal from './components/activities/UserActivityPortal.vue';
 
-// Modals
+import ConfirmDeleteModal from './components/modals/ConfirmDeleteModal.vue';
 import ShiftSettingsModal from './components/modals/ShiftSettingsModal.vue';
 import ConfigModal from './components/modals/ConfigModal.vue';
+import ChangePasswordModal from './components/modals/ChangePasswordModal.vue';
+import NotificationModal from './components/modals/NotificationModal.vue';
 import MemberModal from './components/modals/MemberModal.vue';
 import BatchImportModal from './components/modals/BatchImportModal.vue';
-import ConfirmDeleteModal from './components/modals/ConfirmDeleteModal.vue';
 import ActivityDetailModal from './components/modals/ActivityDetailModal.vue';
 import LeaveActivityModal from './components/modals/LeaveActivityModal.vue';
-import NotificationModal from './components/modals/NotificationModal.vue';
 
-// State & Navigation
-const currentTab = ref('activities');
-const showMobileMenu = ref(false);
-const showNotificationModal = ref(false);
-const mainContentRef = ref(null);
+const ui = useUiStore();
+const auth = useAuthStore();
+const data = useDataStore();
 
-const { toast, showToast } = useToast();
-const { isDarkMode, applyTheme, toggleTheme } = useTheme();
-const { impactLight, notificationWarning } = useHaptics();
-const { isOnline, isCheckingNetwork, initNetworkListener, checkNetworkStatus } = useNetwork();
-const { initPushNotifications, syncAllUpcomingShiftReminders } = useNotifications();
-const { animateTabEnter } = useAnime();
+// Local modal state
+const showMemberModal = ref(false);
+const editingMember = ref(null);
+const showBatchModal = ref(false);
 
-// Composables wiring
-const authModule = useAuth(() => members.value);
-const { isLoggedIn, loginRole, loginForm, currentUserRole, loggedInMemberId, adminAccounts, handleLogin, logout } = authModule;
-
-const membersModule = useMembers(currentUserRole, loggedInMemberId, null, null, null);
-const {
-  members, departments, addDepartment, memberFilterSearch, memberFilterDept, memberFilterTarget, resetMemberFilters,
-  getDeptColorClass, filteredMembersList, showMemberModal, editingMember, memberForm,
-  openMemberModal, saveMember, confirmDeleteMember, showBatchModal, batchText,
-  openBatchModal, saveBatchMembers, pushAllMembersToCloud, deleteModal
-} = membersModule;
-
-const activitiesModule = useActivities(members, loggedInMemberId, currentUserRole);
-const {
-  activities, activityCheckIns, semesters, activityRegistrations, addSemester, deleteSemester, toggleTrainingPointsSubmitted,
-  updateActivitySubmitDate, createActivity, deleteActivity, registerActivityShift, deleteActivityRegistration, getActivityDates,
-  checkInActivity, requestLeaveActivity, getUserCheckInRecord, getActivityStats,
-  computeActivityDerivedFields, exportActivityExcel, exportActivityRegistrationMatrixExcel, adminActivitySummaryStats
-} = activitiesModule;
-
-const shiftsModule = useShifts(members, currentUserRole, loggedInMemberId, deleteModal, activityRegistrations, activities);
-const {
-  shifts, registrations, leaveRequests, shiftSettings, shiftTypes, shiftTypeNames,
-  showShiftSettingsModal, openShiftSettingsModal, saveShiftSettings, toggleRegistrationOpen, resetShiftSettingsToDefault,
-  selectedMonth, selectedWeek, todayDate,
-  activeMember, getMemberName, getMemberDept, formatDate, getInitials,
-  getWeekNumFromDate, getWeekNameFromDate, shiftForm, resetShiftForm, saveShift,
-  regForm, saveRegistration, getShiftRegisteredCount, isShiftFullOnDate, isShiftTakenOnDate, getTakenShiftsCountForDate, isRegDateFull,
-  leaveForm, availableRegisteredShifts, onLeaveMemberChange, onLeaveRegSelect,
-  saveLeaveRequest, leaveStatusFilter, filteredLeaveRequests, pendingLeaveCount,
-  updateLeaveStatus, historyFilter, searchedShifts, filteredRegistrations, confirmDeleteRegistration,
-  exportShiftScheduleMatrixExcel
-} = shiftsModule;
-
-const cloudModule = useCloud(members, shifts, registrations, leaveRequests, adminAccounts, activities, activityCheckIns, semesters, departments, shiftSettings, activityRegistrations);
-const {
-  isCloudConnected, hasFirebaseConfig, showConfigModal, configInput, cloudStatusText,
-  openConfigModal, resetConfigToDefault, saveFirebaseConfig, initCloudRealtime, fetchArchiveMonthShifts
-} = cloudModule;
-
-// Modal States for Activities
-const showActivityDetailModal = ref(false);
+const showActivityDetail = ref(false);
 const selectedActivityForDetail = ref(null);
 
-const showLeaveActivityModal = ref(false);
+const showLeaveActivity = ref(false);
 const selectedActivityForLeave = ref(null);
 
-const handleExportActivityExcel = (act, exportType) => {
-  if (exportType === 'registration') {
-    exportActivityRegistrationMatrixExcel(act, members.value);
-  } else {
-    exportActivityExcel(act, getActivityStats(act.id), members.value);
-  }
-};
+function openMemberModal(m = null) {
+  editingMember.value = m;
+  showMemberModal.value = true;
+}
 
-const openActivityDetailModal = (act) => {
+function openActivityDetail(act) {
   selectedActivityForDetail.value = act;
-  showActivityDetailModal.value = true;
-};
+  showActivityDetail.value = true;
+}
 
-const openLeaveActivityModal = (act) => {
+function openLeaveActivity(act) {
   selectedActivityForLeave.value = act;
-  showLeaveActivityModal.value = true;
-};
+  showLeaveActivity.value = true;
+}
 
-const userRegisteredShiftsForLeave = computed(() => {
-  if (!selectedActivityForLeave.value || !activityRegistrations.value || !loggedInMemberId.value) return [];
-  const myId = String(loggedInMemberId.value).trim().toUpperCase();
-  const actId = selectedActivityForLeave.value.id;
-  return activityRegistrations.value.filter(
-    r => r.activityId === actId && String(r.memberId).trim().toUpperCase() === myId
-  );
-});
-
-const handleConfirmLeaveActivity = async (payload) => {
-  if (selectedActivityForLeave.value) {
-    const act = selectedActivityForLeave.value;
-    const reason = typeof payload === 'object' ? payload.reason : payload;
-    const selectedShiftIds = (typeof payload === 'object' && Array.isArray(payload.selectedShiftIds)) ? payload.selectedShiftIds : [];
-    const selectedShifts = (typeof payload === 'object' && Array.isArray(payload.selectedShifts)) ? payload.selectedShifts : [];
-
-    await requestLeaveActivity(act.id, reason, selectedShifts);
-
-    const memberId = loggedInMemberId.value || '';
-    const canonicalId = String(memberId).trim().toUpperCase();
-    const memberObj = members.value.find(m => String(m.id).toUpperCase() === canonicalId);
-    const memberName = memberObj ? memberObj.name : memberId;
-    const memberDept = memberObj ? (memberObj.department || '') : '';
-
-    let shiftDesc = `Hoạt động: ${act.name}`;
-    if (selectedShifts.length > 0) {
-      const shiftDetails = selectedShifts.map(s => `${s.shiftType} ngày ${formatDate(s.date)}`).join(', ');
-      shiftDesc = `Hoạt động: ${act.name} (${shiftDetails})`;
-    }
-
-    const newId = 'l_act_' + act.id + '_' + canonicalId;
-    const leaveData = {
-      id: newId,
-      regId: `act_${act.id}_${canonicalId}`,
-      activityId: act.id,
-      activityName: act.name,
-      isActivity: true,
-      selectedShiftIds: selectedShiftIds,
-      selectedShifts: selectedShifts,
-      memberId: canonicalId,
-      memberName: memberName,
-      department: memberDept,
-      shiftDate: (selectedShifts.length > 0 ? selectedShifts[0].date : act.date) || new Date().toISOString().slice(0, 10),
-      shiftType: shiftDesc,
-      reason: reason.trim(),
-      status: 'Chờ duyệt',
-      createdAt: new Date().toISOString()
-    };
-
-    const existingIdx = leaveRequests.value.findIndex(l => l.id === newId || (l.activityId === act.id && String(l.memberId).toUpperCase() === canonicalId));
-    if (existingIdx >= 0) {
-      leaveRequests.value[existingIdx] = { ...leaveRequests.value[existingIdx], ...leaveData };
-    } else {
-      leaveRequests.value.unshift(leaveData);
-    }
-    try {
-      localStorage.setItem('local_leave_requests', JSON.stringify(leaveRequests.value));
-    } catch (e) {}
-
-    if (window.firebaseDb && window.FirebaseSDK) {
-      try {
-        const { collection, doc, setDoc } = window.FirebaseSDK;
-        await setDoc(doc(collection(window.firebaseDb, 'leave_requests'), newId), leaveData);
-      } catch (e) {
-        console.warn("Lỗi lưu leave_requests lên cloud:", e);
-      }
-    }
-  }
-};
-
-const handleUpdateLeaveStatus = async (l, newStatus) => {
-  await updateLeaveStatus(l, newStatus);
-  if (l.isActivity || l.activityId) {
-    const actId = l.activityId;
-    const mId = String(l.memberId).trim().toUpperCase();
-    const chk = activityCheckIns.value.find(
-      c => c.activityId === actId && String(c.memberId).trim().toUpperCase() === mId
-    );
-    if (chk) {
-      if (newStatus === 'Đã duyệt') {
-        chk.status = 'leave';
-        chk.leaveApproved = true;
-        if (window.FirebaseSDK && window.firebaseDb) {
-          try {
-            const { doc, setDoc } = window.FirebaseSDK;
-            await setDoc(doc(window.firebaseDb, 'activity_checkins', chk.id), chk, { merge: true });
-          } catch (e) {}
-        }
-
-        // Also delete approved leave shifts from activityRegistrations
-        if (l.selectedShiftIds && Array.isArray(l.selectedShiftIds) && l.selectedShiftIds.length > 0) {
-          activityRegistrations.value = activityRegistrations.value.filter(
-            r => !l.selectedShiftIds.includes(r.id)
-          );
-          try { localStorage.setItem('local_activity_registrations', JSON.stringify(activityRegistrations.value)); } catch (e) {}
-          if (window.FirebaseSDK && window.firebaseDb) {
-            try {
-              const { doc, deleteDoc } = window.FirebaseSDK;
-              for (const rId of l.selectedShiftIds) {
-                deleteDoc(doc(window.firebaseDb, 'activity_registrations', rId)).catch(() => {});
-              }
-            } catch (e) {}
-          }
-        }
-      } else if (newStatus === 'Từ chối') {
-        activityCheckIns.value = activityCheckIns.value.filter(c => c.id !== chk.id);
-        if (window.FirebaseSDK && window.firebaseDb) {
-          try {
-            const { doc, deleteDoc } = window.FirebaseSDK;
-            await deleteDoc(doc(window.firebaseDb, 'activity_checkins', chk.id));
-          } catch (e) {}
-        }
-      }
-      try {
-        localStorage.setItem('local_activity_checkins', JSON.stringify(activityCheckIns.value));
-      } catch (e) {}
-    }
-  }
-};
-
-// Sync any existing activity leave check-ins (activityCheckIns status === 'leave') into leaveRequests for Admin
-watch(
-  () => [activityCheckIns.value, activities.value],
-  () => {
-    if (!activityCheckIns.value || !Array.isArray(activityCheckIns.value)) return;
-    const leaveCheckIns = activityCheckIns.value.filter(c => c.status === 'leave');
-    let hasNew = false;
-    leaveCheckIns.forEach(chk => {
-      const act = activities.value.find(a => a.id === chk.activityId);
-      const actName = act ? act.name : 'Hoạt động';
-      const mId = String(chk.memberId || '').trim().toUpperCase();
-      const mObj = members.value.find(m => String(m.id).toUpperCase() === mId);
-      const mName = chk.memberName || mObj?.name || mId;
-      const mDept = mObj?.department || '';
-      const existing = leaveRequests.value.find(l =>
-        (l.activityId === chk.activityId || l.id.includes(chk.activityId)) &&
-        String(l.memberId).toUpperCase() === mId
-      );
-      if (!existing) {
-        const newId = 'l_act_' + chk.activityId + '_' + mId;
-        const leaveData = {
-          id: newId,
-          regId: `act_${chk.activityId}_${mId}`,
-          activityId: chk.activityId,
-          activityName: actName,
-          isActivity: true,
-          memberId: mId,
-          memberName: mName,
-          department: mDept,
-          shiftDate: act?.date || new Date().toISOString().slice(0, 10),
-          shiftType: `Hoạt động: ${actName}`,
-          reason: chk.leaveReason || 'Xin nghỉ hoạt động',
-          status: chk.leaveApproved ? 'Đã duyệt' : 'Chờ duyệt',
-          createdAt: chk.timestamp || new Date().toISOString()
-        };
-        leaveRequests.value.push(leaveData);
-        hasNew = true;
-      }
-    });
-    if (hasNew) {
-      try {
-        localStorage.setItem('local_leave_requests', JSON.stringify(leaveRequests.value));
-      } catch (e) {}
-    }
-  },
-  { immediate: true, deep: true }
+const pendingLeaveCount = computed(() =>
+  data.leaveRequests.filter((l) => l.status === 'Chờ duyệt').length
 );
 
-const handleAdminCheckInActivity = ({ activityId, memberId, shiftInfo }) => {
-  checkInActivity(activityId, memberId, null, null, null, shiftInfo);
-};
-
-const handleUserActivityCheckIn = (payload) => {
-  if (typeof payload === 'object' && payload !== null && payload.activityId) {
-    checkInActivity(payload.activityId, null, payload.proofImage, payload.proofFileName, payload.proofFolderDate);
-  } else {
-    checkInActivity(payload);
+const primaryTabs = computed(() => [
+  {
+    id: 'activities',
+    label: auth.isAdmin ? 'Quản lý hoạt động' : 'Trang hoạt động',
+    shortLabel: 'Hoạt động',
+    subtitle: 'Quản lý hoạt động học kỳ, đăng ký ca và điểm danh',
+    icon: CalendarCheck
+  },
+  {
+    id: 'entry',
+    label: 'Điểm danh ca trực',
+    shortLabel: 'Điểm danh',
+    subtitle: 'Ghi nhận ca trực văn phòng từ sổ gốc',
+    icon: PenSquare
+  },
+  {
+    id: 'register',
+    label: 'Đăng ký ca trực',
+    shortLabel: 'Đăng ký',
+    subtitle: 'Đăng ký và tra cứu lịch trực dự kiến',
+    icon: CalendarPlus
+  },
+  {
+    id: 'my-shifts',
+    label: 'Ca đã đăng ký',
+    shortLabel: 'Lịch của tôi',
+    subtitle: 'Tổng hợp ca trực tuần và ca hoạt động cá nhân',
+    icon: ClipboardList
+  },
+  {
+    id: 'leave',
+    label: 'Xin nghỉ phép',
+    shortLabel: 'Nghỉ phép',
+    subtitle: 'Nộp và xét duyệt đơn xin nghỉ ca trực / hoạt động',
+    icon: FilePenLine,
+    badge: auth.isAdmin && pendingLeaveCount.value > 0 ? pendingLeaveCount.value : null
   }
-};
+]);
 
-const handleLoginWithTabReset = () => {
-  handleLogin();
-  if (isLoggedIn.value) {
-    currentTab.value = 'activities';
-  }
-};
-
-// Target & Stats Computed Properties
-const memberShiftCountMap = computed(() => {
-  const map = {};
-  members.value.forEach(m => {
-    map[String(m.id).toUpperCase()] = 0;
-  });
-  searchedShifts.value.forEach(s => {
-    const id = String(s.memberId || '').toUpperCase();
-    map[id] = (map[id] || 0) + 1;
-  });
-  return map;
+const adminTabs = computed(() => {
+  if (!auth.isAdmin) return [];
+  return [
+    {
+      id: 'dashboard',
+      label: 'Thống kê & chỉ tiêu',
+      shortLabel: 'Thống kê',
+      subtitle: 'Biểu đồ và ma trận đánh giá chỉ tiêu thành viên',
+      icon: BarChart3
+    },
+    {
+      id: 'history',
+      label: 'Nhật ký & ma trận',
+      shortLabel: 'Nhật ký',
+      subtitle: 'Bảng phân ca ma trận và nhật ký sổ gốc',
+      icon: History
+    },
+    {
+      id: 'members',
+      label: 'Danh sách thành viên',
+      shortLabel: 'Thành viên',
+      subtitle: 'Quản lý danh sách MSSV, Ban và phân quyền',
+      icon: Users
+    }
+  ];
 });
 
-const membersPassingTargetCount = computed(() => {
-  if (members.value.length === 0) return 0;
-  return members.value.filter(m => {
-    const count = memberShiftCountMap.value[String(m.id).toUpperCase()] || 0;
-    const target = m.targetShifts || 10;
-    return count >= target;
-  }).length;
+const allTabs = computed(() => [...primaryTabs.value, ...adminTabs.value]);
+
+const activeTabMeta = computed(() => {
+  return allTabs.value.find((t) => t.id === ui.currentTab) || { label: 'Hệ thống ĐVP', subtitle: '' };
 });
 
-const membersInProgressCount = computed(() => {
-  if (members.value.length === 0) return 0;
-  return members.value.filter(m => {
-    const count = memberShiftCountMap.value[String(m.id).toUpperCase()] || 0;
-    const target = m.targetShifts || 10;
-    return count > 0 && count < target;
-  }).length;
-});
+const showPeriodFilter = computed(() =>
+  ['entry', 'register', 'dashboard', 'history', 'my-shifts'].includes(ui.currentTab)
+);
 
-const membersZeroCount = computed(() => {
-  if (members.value.length === 0) return 0;
-  return members.value.filter(m => {
-    const count = memberShiftCountMap.value[String(m.id).toUpperCase()] || 0;
-    return count === 0;
-  }).length;
-});
-
-const targetPassRate = computed(() => {
-  if (members.value.length === 0) return 0;
-  const totalCompleted = searchedShifts.value.length;
-  const totalTarget = members.value.reduce((acc, m) => acc + (m.targetShifts || 10), 0);
-  if (totalTarget === 0) return 0;
-  return Math.min(100, Math.round((totalCompleted / totalTarget) * 100));
-});
-
-const personalProgressPercent = computed(() => {
-  const currentId = String(loggedInMemberId.value || '').toUpperCase();
-  const count = memberShiftCountMap.value[currentId] || 0;
-  const target = activeMember.value?.targetShifts || 10;
-  return Math.min(100, Math.round((count / target) * 100));
-});
-
-// Computed UI Helpers
-const userRoleBadgeText = computed(() => {
-  const name = getMemberName(loggedInMemberId.value);
-  const displayStr = (name && name !== loggedInMemberId.value)
-    ? `${name} (${loggedInMemberId.value})`
-    : loggedInMemberId.value;
-  return currentUserRole.value === 'admin' ? `Quản Trị Viên: ${displayStr}` : `Thành Viên: ${displayStr}`;
-});
-const leaveListTitle = computed(() => currentUserRole.value === 'admin' ? 'Quản Lý & Duyệt Đơn Xin Nghỉ Phép' : 'Danh Sách Đơn Xin Nghỉ Phép Của Tôi');
-const getLeaveStatusBadgeText = (status) => status === 'Chờ duyệt' ? '⏳ Chờ xét duyệt' : (status === 'Đã duyệt' ? '✅ Đã duyệt' : '✕ Đã từ chối');
-const formatCreatedAt = (dt) => dt ? new Date(dt).toLocaleString('vi-VN') : 'vừa xong';
-const pieChartTitle = computed(() => currentUserRole.value === 'admin' ? 'Biểu Đồ Tròn: Phân Bổ Thành Viên Theo Chỉ Tiêu (10 Ca/Tháng)' : 'Biểu Đồ Tròn: Tiến Độ Ca Trực Cá Nhân (10 Ca/Tháng)');
-const historySubtitle = computed(() => currentUserRole.value === 'admin' ? 'Danh sách toàn bộ ca trực ghi nhận từ sổ gốc' : 'Nhật ký các ca trực cá nhân của tôi');
-
-// Số lượng thông báo chưa xem trên chuông thông báo
-const unreadNotificationCount = computed(() => {
-  if (currentUserRole.value === 'admin') {
-    return pendingLeaveCount.value || 0;
-  }
-  const myId = String(loggedInMemberId.value || '').trim().toLowerCase();
-  if (!myId || !registrations.value) return 0;
-
-  const today = todayDate.value;
-  const todayRegs = registrations.value.filter(r =>
-    String(r.memberId).trim().toLowerCase() === myId &&
-    r.date === today
-  );
-
-  let uncompletedShifts = 0;
-  for (const reg of todayRegs) {
-    const isCheckedIn = (searchedShifts.value || []).some(s =>
-      String(s.memberId).trim().toLowerCase() === myId &&
-      s.date === today &&
-      s.shiftType === reg.shiftType
+const unreadCount = computed(() => {
+  if (auth.isAdmin) return pendingLeaveCount.value;
+  if (!auth.loggedInMemberId) return 0;
+  const today = getTodayStr();
+  const uncompletedToday = data.registrations.filter((r) => {
+    if (r.memberId !== auth.loggedInMemberId || r.date !== today) return false;
+    return !data.shifts.some(
+      (s) => s.memberId === auth.loggedInMemberId && s.date === today && s.shiftType === r.shiftType
     );
-    if (!isCheckedIn) uncompletedShifts++;
-  }
-
-  const myPendingLeaves = (leaveRequests.value || []).filter(l =>
-    String(l.memberId).trim().toLowerCase() === myId &&
-    l.status === 'Chờ duyệt'
+  }).length;
+  const myPending = data.leaveRequests.filter(
+    (l) => l.memberId === auth.loggedInMemberId && l.status === 'Chờ duyệt'
   ).length;
-
-  return uncompletedShifts + myPendingLeaves;
+  return uncompletedToday + myPending;
 });
 
-// Navigation Tabs Config (Roles Separation)
-const tabs = computed(() => {
-  const isAdmin = currentUserRole.value === 'admin';
-  const list = [
-    {
-      id: 'activities',
-      label: isAdmin ? 'Quản Lý Hoạt Động' : 'Trang Hoạt Động',
-      shortLabel: 'Hoạt động',
-      icon: 'fa-solid fa-calendar-check'
-    },
-    { id: 'entry', label: 'Điểm Danh Ca Trực', shortLabel: 'Điểm danh', icon: 'fa-solid fa-pen-to-square' },
-    { id: 'register', label: 'Đăng Ký Ca', shortLabel: 'Đăng ký', icon: 'fa-solid fa-calendar-plus' },
-    {
-      id: 'my-shifts',
-      label: 'Ca Đã Đăng Ký',
-      shortLabel: 'Ca của tôi',
-      icon: 'fa-solid fa-clipboard-user'
-    },
-    { id: 'leave', label: 'Xin Nghỉ Phép', shortLabel: 'Nghỉ phép', icon: 'fa-solid fa-file-pen', badge: (pendingLeaveCount.value > 0 && isAdmin) ? pendingLeaveCount.value : null }
-  ];
-
-  if (isAdmin) {
-    list.push(
-      { id: 'dashboard', label: 'Thống Kê & Chỉ Tiêu', shortLabel: 'Thống kê', icon: 'fa-solid fa-chart-pie' },
-      { id: 'history', label: 'Nhật Ký & Tra Cứu', shortLabel: 'Nhật ký', icon: 'fa-solid fa-clock-rotate-left' },
-      { id: 'members', label: 'Danh Sách Thành Viên', shortLabel: 'Thành viên', icon: 'fa-solid fa-users' }
-    );
+// Guard non-admin from admin tabs
+watch(() => auth.currentUserRole, (role) => {
+  if (role !== 'admin' && ['dashboard', 'history', 'members'].includes(ui.currentTab)) {
+    ui.currentTab = 'activities';
   }
-
-  return list;
 });
 
+// On-demand archive loading when choosing older month
+watch(() => ui.selectedMonth, (newMonth) => {
+  if (newMonth) data.fetchArchiveMonth(newMonth);
+});
+
+// Sync upcoming shift reminders cleanly (using registrations, not completed shifts!)
 watch(
-  () => currentUserRole.value,
-  (role) => {
-    if (role !== 'admin' && ['dashboard', 'history', 'members'].includes(currentTab.value)) {
-      currentTab.value = 'activities';
-    }
-  }
-);
-
-// Excel Export Helper
-const exportToExcel = async () => {
-  const sheetXLSX = XLSX || (typeof window !== 'undefined' ? window.XLSX : null);
-  if (!sheetXLSX) return showToast('Thư viện XLSX chưa sẵn sàng!', 'error');
-
-  const listToExport = (searchedShifts.value && searchedShifts.value.length > 0)
-    ? searchedShifts.value
-    : ((filteredRegistrations.value && filteredRegistrations.value.length > 0) ? filteredRegistrations.value : shifts.value);
-
-  if (!listToExport || listToExport.length === 0) return showToast('Không có dữ liệu ca trực để xuất!', 'error');
-
-  const dataToExport = listToExport.map((s, idx) => ({
-    'STT Báo Cáo': idx + 1,
-    'MSSV': s.memberId,
-    'Họ Và Tên': getMemberName(s.memberId),
-    'Ban Hoạt Động': getMemberDept(s.memberId),
-    'Ngày Trực': formatDate(s.date),
-    'Ca Trực': s.shiftType,
-    'Trang Số Gốc': s.pageNo || '—',
-    'STT Trang Sổ': s.sttNo || '—',
-    'Trạng Thái': s.status || 'Đã đăng ký',
-    'Ghi Chú': s.notes || ''
-  }));
-
-  const worksheet = sheetXLSX.utils.json_to_sheet(dataToExport);
-  worksheet['!cols'] = [
-    { wch: 14 }, // STT Báo Cáo
-    { wch: 14 }, // MSSV
-    { wch: 25 }, // Họ Và Tên
-    { wch: 22 }, // Ban Hoạt Động
-    { wch: 14 }, // Ngày Trực
-    { wch: 12 }, // Ca Trực
-    { wch: 15 }, // Trang Số Gốc
-    { wch: 15 }, // STT Trang Sổ
-    { wch: 14 }, // Trạng Thái
-    { wch: 20 }  // Ghi Chú
-  ];
-  const workbook = sheetXLSX.utils.book_new();
-  sheetXLSX.utils.book_append_sheet(workbook, worksheet, "BaoCaoCaTruc");
-  await exportExcelFile(workbook, `BaoCao_CaTruc_${selectedMonth.value}.xlsx`, showToast);
-};
-
-// Notifications setup
-const setupNotifications = async () => {
-  await initPushNotifications();
-};
-
-watch(
-  () => [isLoggedIn.value, loggedInMemberId.value, searchedShifts.value],
+  () => [auth.isLoggedIn, auth.loggedInMemberId, data.registrations.length],
   () => {
-    if (isLoggedIn.value && loggedInMemberId.value) {
-      const userShifts = searchedShifts.value.filter(s => String(s.memberId).toUpperCase() === String(loggedInMemberId.value).toUpperCase());
-      const name = getMemberName(loggedInMemberId.value);
-      syncAllUpcomingShiftReminders(userShifts, name);
+    if (auth.isLoggedIn && auth.loggedInMemberId) {
+      const myRegs = data.registrations.filter((r) => r.memberId === auth.loggedInMemberId);
+      syncUpcomingShiftReminders(myRegs, data.getMemberName(auth.loggedInMemberId));
+    } else {
+      clearAllShiftReminders();
     }
-  },
-  { deep: true }
+  }
 );
 
-watch(currentTab, () => {
-  nextTick(() => {
-    if (mainContentRef.value) {
-      animateTabEnter(mainContentRef.value);
-    }
+// Keyboard Escape closes open modals
+function handleKeydown(e) {
+  if (e.key !== 'Escape') return;
+  if (ui.confirmModal.show) return ui.closeConfirm();
+  if (showActivityDetail.value) return (showActivityDetail.value = false);
+  if (showLeaveActivity.value) return (showLeaveActivity.value = false);
+  if (showMemberModal.value) return (showMemberModal.value = false);
+  if (showBatchModal.value) return (showBatchModal.value = false);
+  if (ui.showChangePasswordModal) return (ui.showChangePasswordModal = false);
+  if (ui.showShiftSettingsModal) return (ui.showShiftSettingsModal = false);
+  if (ui.showConfigModal) return (ui.showConfigModal = false);
+  if (ui.showNotificationModal) return (ui.showNotificationModal = false);
+  if (ui.showMobileMoreSheet) return (ui.showMobileMoreSheet = false);
+}
+
+onMounted(async () => {
+  ui.applyTheme();
+  registerServiceWorker();
+  window.addEventListener('keydown', handleKeydown);
+
+  await data.initCloud(false);
+  await auth.restoreSession();
+
+  ui.initNetworkListeners(() => {
+    if (!data.isCloudConnected) data.initCloud(false);
   });
 });
 
-watch(selectedMonth, (newMonth) => {
-  if (newMonth && typeof fetchArchiveMonthShifts === 'function') {
-    fetchArchiveMonthShifts(newMonth);
-  }
-});
-
-onMounted(() => {
-  applyTheme();
-  setupNotifications();
-
-  const tryConnectCloud = () => {
-    if (window.FirebaseSDK && window.firebaseDb) {
-      initCloudRealtime();
-    }
-  };
-
-  if (window.FirebaseSDK && window.firebaseDb) {
-    tryConnectCloud();
-  } else {
-    window.addEventListener('firebase-sdk-ready', tryConnectCloud, { once: true });
-    const fallbackTimer = setTimeout(() => {
-      tryConnectCloud();
-    }, 1500);
-    window.addEventListener('firebase-sdk-ready', () => clearTimeout(fallbackTimer), { once: true });
-  }
-
-  initNetworkListener(() => {
-    if (!isCloudConnected.value) {
-      initCloudRealtime(false);
-    }
-  });
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+  clearAllShiftReminders();
 });
 </script>

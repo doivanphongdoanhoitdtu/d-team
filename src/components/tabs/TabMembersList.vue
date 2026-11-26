@@ -1,160 +1,231 @@
 <template>
-  <div class="space-y-4 sm:space-y-6">
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+  <div class="space-y-4">
+    <!-- Header Actions -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-users text-indigo-600"></i> Quản Lý Danh Sách Thành Viên (MSSV)
-        </h3>
-        <p class="text-xs text-slate-500 mt-0.5">Danh sách thành viên chính thức được phép truy cập và trực ca</p>
+        <h2 class="text-base font-bold text-slate-900 dark:text-white">
+          Danh sách thành viên ({{ data.members.length }})
+        </h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          Quản lý MSSV, phân ban, vai trò và tiến độ chỉ tiêu tháng {{ ui.selectedMonth }}.
+        </p>
       </div>
-      <div class="flex flex-wrap items-center gap-2" v-if="currentUserRole === 'admin'">
-        <button @click="$emit('push-cloud')" class="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-          <i class="fa-solid fa-cloud-arrow-up"></i> Đẩy Lên Cloud
+
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <button
+          type="button"
+          @click="$emit('open-batch')"
+          class="px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold flex items-center gap-1.5 cursor-pointer"
+        >
+          <Upload class="w-3.5 h-3.5" />
+          <span>Nhập hàng loạt</span>
         </button>
-        <button @click="$emit('open-batch')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-          <i class="fa-solid fa-file-import"></i> Dán Hàng Loạt
-        </button>
-        <button @click="$emit('open-member-modal', null)" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-          <i class="fa-solid fa-user-plus"></i> Thêm Thành Viên
+        <button
+          type="button"
+          @click="$emit('open-member-modal', null)"
+          class="px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold flex items-center gap-1.5 cursor-pointer"
+        >
+          <UserPlus class="w-3.5 h-3.5" />
+          <span>Thêm thành viên</span>
         </button>
       </div>
     </div>
 
-    <!-- Toolbar Filters -->
-    <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-center w-full md:w-auto flex-grow">
+    <!-- Filters Toolbar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 flex-1">
         <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
-          <input type="text" :value="memberFilterSearch" @input="$emit('update:memberFilterSearch', $event.target.value)" placeholder="Tìm theo tên hoặc MSSV..."
-                 class="w-full border border-slate-300 rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 min-h-[38px]">
-          <button v-if="memberFilterSearch" @click="$emit('update:memberFilterSearch', '')" type="button"
-                  class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer">
-            <i class="fa-solid fa-circle-xmark text-xs"></i>
-          </button>
+          <Search class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Tìm theo họ tên hoặc MSSV..."
+            class="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+          />
         </div>
 
-        <select :value="memberFilterDept" @change="$emit('update:memberFilterDept', $event.target.value)"
-                class="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 min-h-[38px] cursor-pointer">
-          <option value="all">🏛️ Tất cả các Ban ({{ members.length }})</option>
-          <option v-for="d in departments" :key="d" :value="d">
-            {{ d }}
-          </option>
+        <select
+          v-model="deptFilter"
+          class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-brand-600"
+        >
+          <option value="all">Tất cả các Ban ({{ data.members.length }})</option>
+          <option v-for="d in data.departments" :key="d" :value="d">{{ d }}</option>
         </select>
 
-        <select :value="memberFilterTarget" @change="$emit('update:memberFilterTarget', $event.target.value)"
-                class="border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 min-h-[38px] cursor-pointer">
-          <option value="all">🎯 Tất cả chỉ tiêu (10 ca/tháng)</option>
-          <option value="pass">✅ Đã đạt chỉ tiêu (≥ 10 ca)</option>
-          <option value="pending">⏳ Chưa đạt chỉ tiêu (< 10 ca)</option>
+        <select
+          v-model="targetFilter"
+          class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-brand-600"
+        >
+          <option value="all">Tất cả chỉ tiêu tháng</option>
+          <option value="pass">Đã đạt chỉ tiêu</option>
+          <option value="pending">Chưa đạt chỉ tiêu</option>
         </select>
       </div>
 
-      <div class="flex items-center justify-between md:justify-end gap-2 shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-slate-100">
-        <span class="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-extrabold border border-indigo-200">
-          Hiển thị {{ filteredMembersList.length }} / {{ members.length }} Thành Viên
+      <div class="flex items-center justify-between md:justify-end gap-2 shrink-0">
+        <span class="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold tabular-nums">
+          {{ filteredMembers.length }} / {{ data.members.length }}
         </span>
-        <button v-if="memberFilterSearch || memberFilterDept !== 'all' || memberFilterTarget !== 'all'"
-                @click="$emit('reset-filters')" class="text-xs text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer">
-          Đặt lại bộ lọc
+        <button
+          v-if="searchQuery || deptFilter !== 'all' || targetFilter !== 'all'"
+          type="button"
+          @click="resetFilters"
+          class="text-[#c8102e] dark:text-red-400 font-semibold hover:underline cursor-pointer"
+        >
+          Đặt lại
         </button>
       </div>
     </div>
 
-    <!-- Member Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div v-for="m in filteredMembersList" :key="m.id"
-           class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
+    <!-- Members Grid -->
+    <div v-if="filteredMembers.length === 0" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center text-xs text-slate-400">
+      Không tìm thấy thành viên phù hợp với bộ lọc hiện tại.
+    </div>
+
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+      <article
+        v-for="m in filteredMembers"
+        :key="m.id"
+        class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col justify-between gap-3"
+      >
         <div class="space-y-3">
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-2xl bg-indigo-600 text-amber-300 font-black text-sm flex items-center justify-center shadow-md shrink-0 border border-indigo-400/30">
+          <div class="flex items-start justify-between gap-2.5">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-10 h-10 rounded-lg bg-brand-600 text-white text-sm font-bold flex items-center justify-center shrink-0">
                 {{ getInitials(m.name) }}
               </div>
-              <div>
-                <h4 class="font-bold text-slate-800 text-sm sm:text-base leading-tight">{{ m.name }}</h4>
-                <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-                  <span class="text-xs font-bold text-indigo-600">MSSV: {{ m.id }}</span>
-                  <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold border"
-                        :class="m.role === 'admin' ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                    {{ m.role === 'admin' ? '👑 Admin' : '👤 User' }}
+              <div class="min-w-0">
+                <h4 class="text-sm font-bold text-slate-900 dark:text-white truncate">{{ m.name }}</h4>
+                <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <span class="text-xs font-mono font-semibold text-brand-700 dark:text-brand-400">{{ m.id }}</span>
+                  <span
+                    class="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                    :class="m.role === 'admin'
+                      ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'"
+                  >
+                    {{ m.role === 'admin' ? 'Quản trị viên' : 'Thành viên' }}
                   </span>
                 </div>
               </div>
             </div>
 
-            <span class="px-2.5 py-1 rounded-full text-[11px] font-black border shrink-0 shadow-2xs"
-                  :class="getDeptColorClass(m.department)">
+            <span class="px-2 py-0.5 rounded border text-[11px] font-medium shrink-0 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
               {{ m.department || 'Chưa phân ban' }}
             </span>
           </div>
 
-          <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1.5">
-            <div class="flex items-center justify-between text-slate-600">
-              <span class="font-medium">🎂 Ngày sinh:</span>
-              <span class="font-bold text-slate-800">{{ m.dob ? formatDate(m.dob) : 'Chưa cập nhật' }}</span>
+          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800 text-xs space-y-1.5">
+            <div class="flex items-center justify-between text-slate-600 dark:text-slate-400">
+              <span>Ngày sinh</span>
+              <span class="font-medium text-slate-800 dark:text-slate-200 tabular-nums">{{ m.dob ? formatDate(m.dob) : '—' }}</span>
             </div>
-            <div class="flex items-center justify-between text-slate-600">
-              <span class="font-medium">📊 Đã thực hiện (Tháng {{ selectedMonth }}):</span>
-              <span class="font-black" :class="m.actualCount >= 10 ? 'text-emerald-600' : 'text-indigo-600'">
-                {{ m.actualCount }} / 10 ca
+            <div class="flex items-center justify-between text-slate-600 dark:text-slate-400">
+              <span>Đã trực (Tháng {{ ui.selectedMonth }})</span>
+              <span class="font-bold tabular-nums" :class="m.actualCount >= m.targetShifts ? 'text-emerald-700 dark:text-emerald-400' : 'text-brand-700 dark:text-brand-400'">
+                {{ m.actualCount }} / {{ m.targetShifts }} ca
               </span>
             </div>
-
-            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-1">
-              <div class="h-full transition-all duration-500 rounded-full"
-                   :class="m.actualCount >= 10 ? 'bg-emerald-500' : 'bg-indigo-600'"
-                   :style="{ width: m.progressPercent + '%' }"></div>
+            <div class="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all"
+                :class="m.actualCount >= m.targetShifts ? 'bg-emerald-600' : 'bg-brand-600'"
+                :style="{ width: m.progressPercent + '%' }"
+              ></div>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-          <span class="text-[11px] font-bold" :class="m.actualCount >= 10 ? 'text-emerald-600' : 'text-amber-600'">
-            {{ m.actualCount >= 10 ? '🎉 Đã đạt chỉ tiêu' : `⏳ Còn thiếu ${10 - m.actualCount} ca` }}
+        <div class="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-xs">
+          <span
+            class="font-semibold"
+            :class="m.actualCount >= m.targetShifts ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'"
+          >
+            {{ m.actualCount >= m.targetShifts ? 'Đã đạt chỉ tiêu' : `Còn thiếu ${m.targetShifts - m.actualCount} ca` }}
           </span>
 
-          <div class="flex items-center gap-1.5" v-if="currentUserRole === 'admin'">
-            <button @click="$emit('open-member-modal', m)" class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer flex items-center gap-1" title="Chỉnh sửa thành viên">
-              <i class="fa-solid fa-pen"></i> Sửa
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              @click="$emit('open-member-modal', m)"
+              class="px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+            >
+              Sửa
             </button>
-            <button @click="$emit('confirm-delete-member', m)" class="px-2.5 py-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer flex items-center gap-1" title="Xóa thành viên">
-              <i class="fa-solid fa-trash-can"></i> Xóa
+            <button
+              type="button"
+              @click="askDelete(m)"
+              class="px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 hover:border-red-300 hover:text-[#c8102e] text-slate-600 dark:text-slate-400 font-semibold cursor-pointer"
+            >
+              Xóa
             </button>
           </div>
         </div>
-      </div>
-
-      <div v-if="filteredMembersList.length === 0" class="col-span-full bg-white rounded-2xl p-10 text-center text-slate-400 border border-slate-200 space-y-2">
-        <i class="fa-solid fa-user-slash text-3xl text-slate-300"></i>
-        <p class="text-sm font-semibold text-slate-600">Không tìm thấy thành viên nào phù hợp với bộ lọc hiện tại.</p>
-        <button @click="$emit('reset-filters')" class="text-xs text-indigo-600 font-bold underline cursor-pointer">Bấm vào đây để đặt lại bộ lọc</button>
-      </div>
+      </article>
     </div>
   </div>
 </template>
 
 <script setup>
-defineProps([
-  'currentUserRole',
-  'members',
-  'departments',
-  'memberFilterSearch',
-  'memberFilterDept',
-  'memberFilterTarget',
-  'filteredMembersList',
-  'selectedMonth',
-  'getInitials',
-  'getDeptColorClass',
-  'formatDate'
-]);
-defineEmits([
-  'push-cloud',
-  'open-batch',
-  'open-member-modal',
-  'confirm-delete-member',
-  'reset-filters',
-  'update:memberFilterSearch',
-  'update:memberFilterDept',
-  'update:memberFilterTarget'
-]);
+import { ref, computed } from 'vue';
+import { Upload, UserPlus, Search } from 'lucide-vue-next';
+import { useDataStore } from '../../stores/data.js';
+import { useUiStore } from '../../stores/ui.js';
+import { formatDate, getInitials, isDateInSelectedMonth } from '../../utils/date.js';
+
+defineEmits(['open-batch', 'open-member-modal']);
+
+const data = useDataStore();
+const ui = useUiStore();
+
+const searchQuery = ref('');
+const deptFilter = ref('all');
+const targetFilter = ref('all');
+
+// Compute O(N) monthly counts accurately (fixes old null-ref bug!)
+const enrichedMembers = computed(() => {
+  const shiftCounts = new Map();
+  for (const s of data.shifts) {
+    if (isDateInSelectedMonth(s.date, ui.selectedMonth)) {
+      shiftCounts.set(s.memberId, (shiftCounts.get(s.memberId) || 0) + 1);
+    }
+  }
+
+  return data.members.map((m) => {
+    const actualCount = shiftCounts.get(m.id) || 0;
+    const targetShifts = Number(m.targetShifts) || 10;
+    return {
+      ...m,
+      actualCount,
+      targetShifts,
+      progressPercent: Math.min(100, Math.round((actualCount / targetShifts) * 100))
+    };
+  });
+});
+
+const filteredMembers = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  return enrichedMembers.value.filter((m) => {
+    if (q && !m.name.toLowerCase().includes(q) && !m.id.toLowerCase().includes(q)) return false;
+    if (deptFilter.value !== 'all' && m.department !== deptFilter.value) return false;
+    if (targetFilter.value === 'pass' && m.actualCount < m.targetShifts) return false;
+    if (targetFilter.value === 'pending' && m.actualCount >= m.targetShifts) return false;
+    return true;
+  });
+});
+
+function resetFilters() {
+  searchQuery.value = '';
+  deptFilter.value = 'all';
+  targetFilter.value = 'all';
+}
+
+function askDelete(m) {
+  ui.openConfirm({
+    title: 'Xóa thành viên?',
+    message: `Bạn có chắc muốn xóa thành viên ${m.name} (${m.id}) khỏi danh sách Đội?`,
+    confirmText: 'Xóa thành viên',
+    action: () => data.deleteMember(m)
+  });
+}
 </script>

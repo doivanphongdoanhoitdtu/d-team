@@ -1,329 +1,277 @@
 <template>
-  <div class="space-y-4 sm:space-y-6">
-    <!-- Stat Cards Overview -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <div class="dashboard-card bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+  <div class="space-y-5">
+    <!-- KPI Strip -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between">
         <div>
-          <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">{{ currentUserRole === 'admin' ? 'Tổng Ca Trực Toàn Đội' : 'Ca Trực Cá Nhân' }}</p>
-          <p class="text-2xl font-black text-slate-800 dark:text-white mt-1">{{ displayStats.shifts }} <span class="text-xs font-medium text-slate-400">ca</span></p>
-        </div>
-        <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300 flex items-center justify-center text-xl font-bold border border-indigo-100 dark:border-indigo-900">
-          <i class="fa-solid fa-clipboard-list"></i>
-        </div>
-      </div>
-
-      <div class="dashboard-card bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-        <div>
-          <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">{{ currentUserRole === 'admin' ? 'Tổng Ca Đăng Ký Toàn Đội' : 'Ca Đăng Ký Cá Nhân' }}</p>
-          <p class="text-2xl font-black text-slate-800 dark:text-white mt-1">{{ displayStats.registrations }} <span class="text-xs font-medium text-slate-400">ca</span></p>
-        </div>
-        <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-300 flex items-center justify-center text-xl font-bold border border-sky-100 dark:border-sky-900">
-          <i class="fa-solid fa-calendar-check"></i>
-        </div>
-      </div>
-
-      <div class="dashboard-card bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-        <div>
-          <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">{{ currentUserRole === 'admin' ? 'Tỷ Lệ Đạt Chỉ Tiêu' : 'Tiến Độ Cá Nhân' }}</p>
-          <p class="text-2xl font-black text-slate-800 dark:text-white mt-1">{{ displayStats.passRate }}%</p>
-          <p class="text-[11px] text-slate-400 dark:text-slate-400 mt-0.5" v-if="currentUserRole === 'admin'">{{ membersPassingTargetCount }}/{{ members.length }} thành viên đạt chỉ tiêu</p>
-        </div>
-        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center text-xl font-bold border border-emerald-100 dark:border-emerald-900">
-          <i class="fa-solid fa-chart-line"></i>
-        </div>
-      </div>
-
-      <div class="dashboard-card bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-        <div>
-          <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">{{ currentUserRole === 'admin' ? 'Đơn Xin Nghỉ Phép Toàn Đội' : 'Đơn Nghỉ Phép Cá Nhân' }}</p>
-          <p class="text-2xl font-black text-slate-800 dark:text-white mt-1">{{ displayStats.leave }} <span class="text-xs font-medium text-slate-400">đơn</span></p>
-        </div>
-        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300 flex items-center justify-center text-xl font-bold border border-amber-100 dark:border-amber-900">
-          <i class="fa-solid fa-envelope-open-text"></i>
-        </div>
-      </div>
-    </div>
-
-    <!-- Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-      <!-- 1. Top Thành Viên Trực Nhiều Nhất (Bar Chart) -->
-      <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <h3 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-          <i class="fa-solid fa-chart-column text-indigo-600 dark:text-indigo-400"></i> Top Thành Viên Trực Nhiều Nhất
-        </h3>
-        <div class="relative h-64 flex items-center justify-center min-h-[256px]">
-          <canvas id="topMembersBarChart" class="w-full h-full"></canvas>
-        </div>
-      </div>
-
-      <!-- 2. Phân Bố Số Ca Trực (Ca 1 - 4) (Doughnut Chart) -->
-      <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <h3 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-          <i class="fa-solid fa-chart-pie text-indigo-600 dark:text-indigo-400"></i> Phân Bố Số Ca Trực (Ca 1 - 4)
-        </h3>
-        <div class="relative h-64 flex items-center justify-center min-h-[256px]">
-          <canvas id="shiftDistributionChart" class="w-full h-full"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3. Ma Trận Đánh Giá Theo Từng Tuần & Tổng Kết Tháng -->
-    <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div>
-          <h3 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <i class="fa-solid fa-table-list text-indigo-600 dark:text-indigo-400"></i> Ma Trận Đánh Giá Theo Từng Tuần &amp; Tổng Kết Tháng
-          </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Định mức tiêu chuẩn: <strong class="text-indigo-600 dark:text-indigo-400 font-bold">2 ca/tuần</strong> cho mỗi thành viên • Tự động tổng hợp đánh giá theo tuần và toàn tháng {{ selectedMonth || '' }}
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tổng ca trực đã ghi</p>
+          <p class="text-2xl font-bold text-slate-900 dark:text-white tabular-nums mt-1">
+            {{ periodShifts.length }} <span class="text-xs font-normal text-slate-400">ca</span>
           </p>
         </div>
-        <div class="relative w-full md:w-64">
-          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
-            <i class="fa-solid fa-magnifying-glass text-xs"></i>
-          </span>
-          <input type="text"
-                 v-model="matrixSearch"
-                 placeholder="Tìm theo tên, MSSV, Ban..."
-                 class="w-full pl-8 pr-7 py-1.5 sm:py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium placeholder-slate-400">
-          <button v-if="matrixSearch" @click="matrixSearch = ''" type="button"
-                  class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
-            <i class="fa-solid fa-circle-xmark text-xs"></i>
-          </button>
+        <div class="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center">
+          <ClipboardCheck class="w-5 h-5" />
         </div>
       </div>
 
-      <div class="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
-        <table class="w-full text-left text-xs sm:text-sm border-collapse">
-          <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 font-bold uppercase text-[11px] tracking-wider">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Ca đã đăng ký</p>
+          <p class="text-2xl font-bold text-slate-900 dark:text-white tabular-nums mt-1">
+            {{ periodRegs.length }} <span class="text-xs font-normal text-slate-400">ca</span>
+          </p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 flex items-center justify-center">
+          <CalendarDays class="w-5 h-5" />
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tỷ lệ hoàn thành chỉ tiêu</p>
+          <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums mt-1">{{ targetPassRate }}%</p>
+          <p class="text-[11px] text-slate-500 tabular-nums mt-0.5">{{ passingMembersCount }}/{{ data.members.length }} thành viên đạt</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+          <TrendingUp class="w-5 h-5" />
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Đơn xin nghỉ phép</p>
+          <p class="text-2xl font-bold text-amber-700 dark:text-amber-400 tabular-nums mt-1">
+            {{ data.leaveRequests.length }} <span class="text-xs font-normal text-slate-400">đơn</span>
+          </p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+          <FileText class="w-5 h-5" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Top thành viên trực nhiều nhất</h3>
+        <div class="relative h-64">
+          <canvas ref="barCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Phân bổ ca trực theo khung giờ</h3>
+        <div class="relative h-64">
+          <canvas ref="doughnutCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unified 4-Week Evaluation Matrix (Consistent with Global Reporting Periods) -->
+    <section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">
+            Ma trận đánh giá chỉ tiêu theo tuần — Tháng {{ ui.selectedMonth }}
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Chuẩn 4 kỳ báo cáo: Tuần 1 (1–8), Tuần 2 (9–18), Tuần 3 (19–25), Tuần 4 (26–Cuối tháng) · Định mức 10 ca/tháng.
+          </p>
+        </div>
+
+        <div class="relative sm:w-64">
+          <Search class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            v-model="matrixSearch"
+            type="text"
+            placeholder="Tìm thành viên, MSSV, Ban..."
+            class="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+          />
+        </div>
+      </div>
+
+      <div class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
             <tr>
-              <th class="py-3 px-4 text-left">THÀNH VIÊN</th>
-              <th class="py-3 px-3 text-center">
-                <div>TUẦN 1</div>
-                <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-normal">TARGET: 2 CA</div>
+              <th class="py-2.5 px-4 font-semibold">Thành viên</th>
+              <th v-for="w in REPORTING_WEEKS" :key="w.id" class="py-2.5 px-3 text-center font-semibold">
+                <div>{{ w.label }}</div>
+                <div class="text-[10px] font-normal text-slate-400">{{ w.range }}</div>
               </th>
-              <th class="py-3 px-3 text-center">
-                <div>TUẦN 2</div>
-                <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-normal">TARGET: 2 CA</div>
-              </th>
-              <th class="py-3 px-3 text-center">
-                <div>TUẦN 3</div>
-                <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-normal">TARGET: 2 CA</div>
-              </th>
-              <th class="py-3 px-3 text-center">
-                <div>TUẦN 4</div>
-                <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-normal">TARGET: 2 CA</div>
-              </th>
-              <th class="py-3 px-3 text-center">
-                <div>TUẦN 5</div>
-                <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-normal">TARGET: 2 CA</div>
-              </th>
-              <th class="py-3 px-3 text-center">TỔNG THÁNG</th>
-              <th class="py-3 px-4 text-center">ĐÁNH GIÁ CUỐI THÁNG</th>
+              <th class="py-2.5 px-3 text-center font-semibold">Tổng tháng</th>
+              <th class="py-2.5 px-4 text-center font-semibold">Đánh giá</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-            <tr v-if="filteredMatrixList.length === 0">
-              <td colspan="8" class="text-center py-10 text-slate-400 dark:text-slate-500 text-xs sm:text-sm font-medium">
-                Không tìm thấy thành viên nào phù hợp.
-              </td>
+            <tr v-if="filteredMatrix.length === 0">
+              <td colspan="7" class="py-8 text-center text-slate-400">Không tìm thấy thành viên phù hợp.</td>
             </tr>
-            <tr v-for="item in filteredMatrixList" :key="item.member.id" class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
-              <!-- Member Info -->
-              <td class="py-3 px-4">
-                <div class="font-bold text-slate-800 dark:text-white text-xs sm:text-sm">{{ item.member.name || item.member.id }}</div>
-                <div class="text-[11px] text-slate-400 font-medium">{{ item.member.id }} <span v-if="item.member.department">• {{ item.member.department }}</span></div>
+            <tr
+              v-for="row in filteredMatrix"
+              :key="row.member.id"
+              class="hover:bg-slate-50 dark:hover:bg-slate-800/40"
+            >
+              <td class="py-2.5 px-4">
+                <div class="font-semibold text-slate-900 dark:text-white">{{ row.member.name }}</div>
+                <div class="text-[11px] text-slate-500 font-mono">
+                  {{ row.member.id }} <span v-if="row.member.department" class="font-sans">· {{ row.member.department }}</span>
+                </div>
               </td>
-
-              <!-- Weeks 1 - 5 -->
-              <td v-for="w in [1, 2, 3, 4, 5]" :key="w" class="py-3 px-3 text-center">
-                <span v-if="item.weeks[w] >= 2" class="inline-flex items-center justify-center px-2 py-0.5 rounded-lg text-xs font-black bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  {{ item.weeks[w] }} ca
+              <td v-for="w in [1, 2, 3, 4]" :key="w" class="py-2.5 px-3 text-center tabular-nums">
+                <span
+                  v-if="row.weeks[w] >= 2"
+                  class="inline-flex px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-semibold"
+                >
+                  {{ row.weeks[w] }}
                 </span>
-                <span v-else-if="item.weeks[w] === 1" class="inline-flex items-center justify-center px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                  {{ item.weeks[w] }} ca
+                <span
+                  v-else-if="row.weeks[w] === 1"
+                  class="inline-flex px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-semibold"
+                >
+                  1
                 </span>
-                <span v-else class="text-xs text-slate-300 dark:text-slate-600 font-medium">
-                  0
-                </span>
+                <span v-else class="text-slate-300 dark:text-slate-600">0</span>
               </td>
-
-              <!-- Month Total -->
-              <td class="py-3 px-3 text-center">
-                <span class="font-black text-slate-800 dark:text-white text-xs sm:text-sm">{{ item.totalShifts }}</span>
-                <span class="text-[11px] font-medium text-slate-400"> / {{ item.targetShifts }} ca</span>
+              <td class="py-2.5 px-3 text-center tabular-nums">
+                <span class="font-bold text-slate-900 dark:text-white">{{ row.total }}</span>
+                <span class="text-slate-400"> / {{ row.target }}</span>
               </td>
-
-              <!-- Assessment Status -->
-              <td class="py-3 px-4 text-center">
-                <span v-if="item.isPassed" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  <i class="fa-solid fa-circle-check text-emerald-500"></i> Đạt chỉ tiêu
-                </span>
-                <span v-else class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                  <i class="fa-solid fa-circle-xmark text-rose-500"></i> Chưa đạt
+              <td class="py-2.5 px-4 text-center">
+                <span
+                  class="inline-flex px-2 py-0.5 rounded border text-[11px] font-semibold"
+                  :class="row.isPassed
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                    : 'bg-red-50 text-[#c8102e] border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800'"
+                >
+                  {{ row.isPassed ? 'Đạt chỉ tiêu' : 'Chưa đạt' }}
                 </span>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, onBeforeUnmount, nextTick, reactive } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import Chart from 'chart.js/auto';
-import { useAnime } from '../../composables/useAnime.js';
+import { ClipboardCheck, CalendarDays, TrendingUp, FileText, Search } from 'lucide-vue-next';
+import { useDataStore } from '../../stores/data.js';
+import { useUiStore } from '../../stores/ui.js';
+import { REPORTING_WEEKS, getWeekNumFromDate, isDateInSelectedMonth } from '../../utils/date.js';
 
-const { animateStagger, animateCounter } = useAnime();
+const data = useDataStore();
+const ui = useUiStore();
 
-const displayStats = reactive({
-  shifts: 0,
-  registrations: 0,
-  passRate: 0,
-  leave: 0
-});
-
-const props = defineProps([
-  'currentTab',
-  'currentUserRole',
-  'filteredShifts',
-  'shiftTypes',
-  'personalShiftsCount',
-  'registrations',
-  'personalRegistrationsCount',
-  'targetPassRate',
-  'personalProgressPercent',
-  'membersPassingTargetCount',
-  'membersInProgressCount',
-  'membersZeroCount',
-  'members',
-  'leaveRequests',
-  'personalLeaveRequests',
-  'pieChartTitle',
-  'selectedMonth',
-  'getMemberName',
-  'getMemberDept'
-]);
-
-let topMembersChartInstance = null;
-let shiftDistributionChartInstance = null;
-
+const barCanvas = ref(null);
+const doughnutCanvas = ref(null);
 const matrixSearch = ref('');
 
-// Helper: Calculate week index (1 to 5) from a date string (YYYY-MM-DD)
-const getWeekFromDate = (dateStr) => {
-  if (!dateStr) return 1;
-  const parts = dateStr.split('-');
-  const day = parseInt(parts[2], 10) || 1;
-  if (day <= 7) return 1;
-  if (day <= 14) return 2;
-  if (day <= 21) return 3;
-  if (day <= 28) return 4;
-  return 5;
-};
+let barChart = null;
+let doughnutChart = null;
 
-// Helper: Get shifts for a specific member
-const getMemberShifts = (memberId) => {
-  if (!memberId) return [];
-  const targetId = String(memberId).trim().toUpperCase();
-  return (props.filteredShifts || []).filter(s => {
-    return String(s.memberId || '').trim().toUpperCase() === targetId;
-  });
-};
+const periodShifts = computed(() =>
+  data.getShiftsForPeriod(ui.selectedMonth, ui.selectedWeek, 'admin')
+);
+const periodRegs = computed(() =>
+  data.getRegistrationsForPeriod(ui.selectedMonth, ui.selectedWeek)
+);
 
-// Matrix computed list for all members
-const matrixList = computed(() => {
-  const list = props.members || [];
-  return list.map(member => {
-    const shifts = getMemberShifts(member.id);
-    const weeks = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    shifts.forEach(s => {
-      const w = getWeekFromDate(s.date);
-      if (weeks[w] !== undefined) {
-        weeks[w]++;
-      }
-    });
-    const totalShifts = shifts.length;
-    const targetShifts = Number(member.targetShifts) || 10;
-    const isPassed = totalShifts >= targetShifts;
+// Matrix always evaluates full selected month across 4 reporting weeks
+const monthShifts = computed(() =>
+  data.shifts.filter((s) => isDateInSelectedMonth(s.date, ui.selectedMonth))
+);
 
-    return {
-      member,
-      weeks,
-      totalShifts,
-      targetShifts,
-      isPassed
-    };
+const matrixRows = computed(() => {
+  const byMember = new Map();
+  for (const s of monthShifts.value) {
+    if (!byMember.has(s.memberId)) byMember.set(s.memberId, []);
+    byMember.get(s.memberId).push(s);
+  }
+
+  return data.members.map((member) => {
+    const list = byMember.get(member.id) || [];
+    const weeks = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    for (const s of list) {
+      const w = getWeekNumFromDate(s.date);
+      weeks[w] = (weeks[w] || 0) + 1;
+    }
+    const total = list.length;
+    const target = Number(member.targetShifts) || 10;
+    return { member, weeks, total, target, isPassed: total >= target };
   });
 });
 
-// Search filter for matrix
-const filteredMatrixList = computed(() => {
-  const q = (matrixSearch.value || '').trim().toLowerCase();
-  if (!q) return matrixList.value;
-  return matrixList.value.filter(item => {
-    const name = String(item.member.name || '').toLowerCase();
-    const id = String(item.member.id || '').toLowerCase();
-    const dept = String(item.member.department || '').toLowerCase();
-    return name.includes(q) || id.includes(q) || dept.includes(q);
-  });
+const passingMembersCount = computed(() => matrixRows.value.filter((r) => r.isPassed).length);
+
+const targetPassRate = computed(() => {
+  if (data.members.length === 0) return 0;
+  const totalTarget = data.members.reduce((acc, m) => acc + (Number(m.targetShifts) || 10), 0);
+  if (totalTarget === 0) return 0;
+  return Math.min(100, Math.round((monthShifts.value.length / totalTarget) * 100));
 });
 
-// Render Charts Function
-const renderCharts = () => {
+const filteredMatrix = computed(() => {
+  const q = matrixSearch.value.trim().toLowerCase();
+  if (!q) return matrixRows.value;
+  return matrixRows.value.filter(
+    (r) =>
+      r.member.name.toLowerCase().includes(q) ||
+      r.member.id.toLowerCase().includes(q) ||
+      (r.member.department || '').toLowerCase().includes(q)
+  );
+});
+
+function destroyCharts() {
+  if (barChart) { barChart.destroy(); barChart = null; }
+  if (doughnutChart) { doughnutChart.destroy(); doughnutChart = null; }
+}
+
+function renderCharts() {
   nextTick(() => {
-    // 1. Top Thành Viên Trực Nhiều Nhất (Bar Chart)
-    const canvas1 = document.getElementById('topMembersBarChart');
-    if (canvas1) {
-      if (topMembersChartInstance) {
-        try { topMembersChartInstance.destroy(); } catch (e) {}
+    const isDark = ui.isDarkMode;
+    const textColor = isDark ? '#94a3b8' : '#475569';
+    const gridColor = isDark ? '#1e293b' : '#f1f5f9';
+
+    if (barCanvas.value) {
+      if (barChart) barChart.destroy();
+
+      const counts = new Map();
+      for (const s of periodShifts.value) {
+        counts.set(s.memberId, (counts.get(s.memberId) || 0) + 1);
       }
 
-      // Map member shift counts and sort
-      const memberStats = (props.members || []).map(m => {
-        const completed = getMemberShifts(m.id).length;
-        const target = Number(m.targetShifts) || 10;
-        return {
-          name: m.name || m.id,
-          completed,
-          target
-        };
-      });
+      const top = data.members
+        .map((m) => ({
+          name: m.name,
+          completed: counts.get(m.id) || 0,
+          target: Number(m.targetShifts) || 10
+        }))
+        .filter((x) => x.completed > 0)
+        .sort((a, b) => b.completed - a.completed)
+        .slice(0, 7);
 
-      // Filter only members who have active shifts or top members
-      memberStats.sort((a, b) => b.completed - a.completed);
-      const topList = memberStats.filter(m => m.completed > 0).slice(0, 7);
-
-      const labels = topList.map(m => m.name);
-      const completedData = topList.map(m => m.completed);
-      const targetData = topList.map(m => m.target);
-
-      const maxCompleted = completedData.length > 0 ? Math.max(...completedData, 1) : 1;
-
-      topMembersChartInstance = new Chart(canvas1, {
+      barChart = new Chart(barCanvas.value, {
         type: 'bar',
         data: {
-          labels: labels,
+          labels: top.map((t) => t.name),
           datasets: [
             {
-              label: 'Ca Đã Trực',
-              data: completedData,
-              backgroundColor: '#4F46E5', // Indigo / Purple
+              label: 'Ca đã trực',
+              data: top.map((t) => t.completed),
+              backgroundColor: '#0052A5',
               borderRadius: 4,
-              borderSkipped: false,
-              barPercentage: 0.5,
-              categoryPercentage: 0.6
+              barPercentage: 0.55
             },
             {
-              label: 'Chỉ Tiêu Quy Định',
-              data: targetData,
-              backgroundColor: '#CBD5E1', // Light Gray
+              label: 'Chỉ tiêu tháng',
+              data: top.map((t) => t.target),
+              backgroundColor: isDark ? '#334155' : '#cbd5e1',
               borderRadius: 4,
-              borderSkipped: false,
-              barPercentage: 0.5,
-              categoryPercentage: 0.6
+              barPercentage: 0.55
             }
           ]
         },
@@ -331,122 +279,46 @@ const renderCharts = () => {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              position: 'top',
-              align: 'center',
-              labels: {
-                boxWidth: 20,
-                boxHeight: 10,
-                useBorderRadius: true,
-                borderRadius: 2,
-                font: { weight: 'bold', size: 12 },
-                color: '#64748B',
-                padding: 16
-              }
-            },
-            tooltip: {
-              padding: 10,
-              cornerRadius: 8
-            }
+            legend: { labels: { color: textColor, font: { size: 11, weight: '600' } } }
           },
           scales: {
-            x: {
-              grid: { display: false },
-              ticks: {
-                color: '#64748B',
-                font: { weight: 'bold', size: 11 }
-              }
-            },
-            y: {
-              beginAtZero: true,
-              suggestedMax: maxCompleted,
-              ticks: {
-                precision: 0,
-                color: '#64748B',
-                font: { weight: 'bold', size: 11 }
-              },
-              grid: {
-                color: '#F1F5F9'
-              }
-            }
+            x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
+            y: { beginAtZero: true, ticks: { precision: 0, color: textColor }, grid: { color: gridColor } }
           }
         }
       });
     }
 
-    // 2. Phân Bố Số Ca Trực (Ca 1 - 4) (Doughnut Chart)
-    const canvas2 = document.getElementById('shiftDistributionChart');
-    if (canvas2) {
-      if (shiftDistributionChartInstance) {
-        try { shiftDistributionChartInstance.destroy(); } catch (e) {}
-      }
+    if (doughnutCanvas.value) {
+      if (doughnutChart) doughnutChart.destroy();
 
-      const shiftList = props.filteredShifts || [];
-      const standardShifts = [
-        { id: 'Ca 1', name: 'Ca 1', color: '#3B82F6' }, // Blue
-        { id: 'Ca 2', name: 'Ca 2', color: '#10B981' }, // Green
-        { id: 'Ca 3', name: 'Ca 3', color: '#F59E0B' }, // Orange
-        { id: 'Ca 4', name: 'Ca 4', color: '#8B5CF6' }  // Purple
-      ];
+      const palette = ['#0052A5', '#15803D', '#D97706', '#0284C7', '#64748B', '#C8102E'];
+      const types = data.shiftTypeNames.length ? data.shiftTypeNames : ['Ca 1', 'Ca 2', 'Ca 3', 'Ca 4'];
+      const values = types.map((t) => periodShifts.value.filter((s) => s.shiftType === t).length);
+      const total = values.reduce((a, b) => a + b, 0);
 
-      const labels = standardShifts.map(s => s.name);
-      const data = standardShifts.map(s => {
-        return shiftList.filter(shift => {
-          const type = String(shift.shiftType || '').trim();
-          return type.toLowerCase().includes(s.name.toLowerCase()) || type === s.id;
-        }).length;
-      });
-      const colors = standardShifts.map(s => s.color);
-
-      const totalCount = data.reduce((a, b) => a + b, 0);
-
-      shiftDistributionChartInstance = new Chart(canvas2, {
+      doughnutChart = new Chart(doughnutCanvas.value, {
         type: 'doughnut',
         data: {
-          labels: labels,
-          datasets: [{
-            data: totalCount > 0 ? data : [1, 0, 0, 0],
-            backgroundColor: colors,
-            borderWidth: 2,
-            borderColor: '#ffffff',
-            hoverOffset: 4
-          }]
+          labels: types,
+          datasets: [
+            {
+              data: total > 0 ? values : types.map((_, i) => (i === 0 ? 1 : 0)),
+              backgroundColor: types.map((_, i) => palette[i % palette.length]),
+              borderColor: isDark ? '#0f172a' : '#ffffff',
+              borderWidth: 2
+            }
+          ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          cutout: '65%',
+          cutout: '64%',
           plugins: {
-            legend: {
-              position: 'right',
-              align: 'center',
-              labels: {
-                boxWidth: 18,
-                boxHeight: 12,
-                useBorderRadius: true,
-                borderRadius: 2,
-                font: { weight: 'bold', size: 12 },
-                color: '#64748B',
-                padding: 12,
-                generateLabels: () => {
-                  return standardShifts.map((s, i) => ({
-                    text: s.name,
-                    fillStyle: s.color,
-                    strokeStyle: s.color,
-                    lineWidth: 0,
-                    hidden: false,
-                    index: i
-                  }));
-                }
-              }
-            },
+            legend: { position: 'right', labels: { color: textColor, font: { size: 11, weight: '600' } } },
             tooltip: {
               callbacks: {
-                label: (context) => {
-                  const label = context.label || '';
-                  const val = totalCount > 0 ? (data[context.dataIndex] || 0) : 0;
-                  return ` ${label}: ${val} ca`;
-                }
+                label: (ctx) => ` ${ctx.label}: ${total > 0 ? values[ctx.dataIndex] : 0} ca`
               }
             }
           }
@@ -454,47 +326,13 @@ const renderCharts = () => {
       });
     }
   });
-};
+}
 
-// Target stats calculations for animation
-const targetShifts = computed(() => props.currentUserRole === 'admin' ? (props.filteredShifts?.length || 0) : (props.personalShiftsCount || 0));
-const targetRegs = computed(() => props.currentUserRole === 'admin' ? (props.registrations?.length || 0) : (props.personalRegistrationsCount || 0));
-const targetRate = computed(() => props.currentUserRole === 'admin' ? (Number(props.targetPassRate) || 0) : (Number(props.personalProgressPercent) || 0));
-const targetLeave = computed(() => props.currentUserRole === 'admin' ? (props.leaveRequests?.length || 0) : (props.personalLeaveRequests?.length || 0));
-
-watch(targetShifts, (val) => animateCounter(displayStats, 'shifts', val), { immediate: true });
-watch(targetRegs, (val) => animateCounter(displayStats, 'registrations', val), { immediate: true });
-watch(targetRate, (val) => animateCounter(displayStats, 'passRate', val), { immediate: true });
-watch(targetLeave, (val) => animateCounter(displayStats, 'leave', val), { immediate: true });
-
-onMounted(() => {
-  renderCharts();
-  nextTick(() => {
-    animateStagger('.dashboard-card', { duration: 450, staggerDelay: 60 });
-  });
-});
-
-onBeforeUnmount(() => {
-  if (topMembersChartInstance) try { topMembersChartInstance.destroy(); } catch (e) {}
-  if (shiftDistributionChartInstance) try { shiftDistributionChartInstance.destroy(); } catch (e) {}
-});
+onMounted(renderCharts);
+onBeforeUnmount(destroyCharts);
 
 watch(
-  () => [
-    props.currentTab,
-    props.currentUserRole,
-    props.filteredShifts,
-    props.members,
-    props.selectedMonth
-  ],
-  () => {
-    if (props.currentTab === 'dashboard') {
-      nextTick(() => {
-        setTimeout(renderCharts, 50);
-        animateStagger('.dashboard-card', { duration: 400, staggerDelay: 50 });
-      });
-    }
-  },
-  { deep: true, immediate: true }
+  () => [periodShifts.value, data.members.length, ui.isDarkMode, ui.selectedMonth],
+  renderCharts
 );
 </script>

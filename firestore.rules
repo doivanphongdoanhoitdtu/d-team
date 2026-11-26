@@ -1,0 +1,118 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdminSession() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/sessions/$(request.auth.uid))
+        && get(/databases/$(database)/documents/sessions/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isValidDateStr(val) {
+      return val is string && val.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isValidMssv(val) {
+      return val is string && val.size() >= 3 && val.size() <= 16;
+    }
+
+    // Admin session binding (uid-scoped)
+    match /sessions/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Admin credentials: NEVER allow collection listing (list); only single-doc get or admin writes
+    match /admin_accounts/{docId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow write: if isAdminSession()
+        || (isSignedIn() && request.resource.data.keys().hasAll(['passwordHash', 'passwordSalt']) && !('password' in request.resource.data));
+    }
+
+    // Members list: readable by authenticated app clients, writable ONLY by Admin
+    match /members/{memberId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdminSession();
+    }
+
+    // App Configuration (semesters, departments, shift_settings): readable by all, writable ONLY by Admin
+    match /app_config/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isAdminSession();
+    }
+
+    // Completed Shifts (Sổ gốc): members can create valid shift records; only Admin can modify/delete
+    match /shifts/{shiftId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidMssv(request.resource.data.memberId)
+        && isValidDateStr(request.resource.data.date)
+        && request.resource.data.shiftType is string
+        && request.resource.data.pageNo is number
+        && request.resource.data.sttNo is number;
+      allow update, delete: if isAdminSession();
+    }
+
+    // Shift Registrations: members can register; ONLY Admin can delete/update
+    match /registrations/{regId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidMssv(request.resource.data.memberId)
+        && isValidDateStr(request.resource.data.date)
+        && request.resource.data.shiftType is string;
+      allow update, delete: if isAdminSession();
+    }
+
+    // Leave Requests: members can create pending requests; ONLY Admin can approve/reject/delete
+    match /leave_requests/{leaveId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidMssv(request.resource.data.memberId)
+        && request.resource.data.status == 'Chờ duyệt'
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0
+        && request.resource.data.reason.size() <= 600;
+      allow update, delete: if isAdminSession();
+    }
+
+    // Activities: readable by all, writable ONLY by Admin
+    match /activities/{actId} {
+      allow read: if isSignedIn();
+      allow write: if isAdminSession();
+    }
+
+    // Activity Registrations: members can register and cancel their own upcoming shifts
+    match /activity_registrations/{regId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidMssv(request.resource.data.memberId)
+        && request.resource.data.activityId is string
+        && isValidDateStr(request.resource.data.date);
+      allow update: if isAdminSession();
+      allow delete: if isSignedIn();
+    }
+
+    // Activity Check-ins (lightweight metadata, no huge inline base64 required)
+    match /activity_checkins/{chkId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && isValidMssv(request.resource.data.memberId)
+        && request.resource.data.activityId is string;
+      allow delete: if isAdminSession();
+    }
+
+    // Activity Proof Images (lazy-loaded collection, size capped < 500KB base64)
+    match /activity_proofs/{proofId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && request.resource.data.proofImage is string
+        && request.resource.data.proofImage.size() <= 550000;
+      allow delete: if isAdminSession();
+    }
+  }
+}

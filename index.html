@@ -1,125 +1,16 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ thống quản lý ĐVP</title>
-    <!-- Favicon Icon -->
-    <link rel="icon" href="/logo.jpg">
-    <!-- Tailwind CSS -->
-    <script>
-        const _origWarn = console.warn;
-        console.warn = function (...args) {
-            if (args[0] && typeof args[0] === 'string' && args[0].includes('tailwindcss.com')) return;
-            _origWarn.apply(console, args);
-        };
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class'
-        };
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Vue 3 Production Build CDN -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Firebase Hardcoded Configuration (Auto-connect for Mobile & Web) -->
-    <script>
-        window.__app_id = "shift-log-global-v1";
-        window.firebaseConfig = {
-            apiKey: "AIzaSyB8jLfFekVckhfzP0WtRp3j0lkk9K7-2dU",
-            authDomain: "sctdt-a6bf9.firebaseapp.com",
-            projectId: "sctdt-a6bf9",
-            storageBucket: "sctdt-a6bf9.firebasestorage.app",
-            messagingSenderId: "714742650479",
-            appId: "1:714742650479:web:682395660baa0cf6ebdf9a"
-        };
-    </script>
-
-    <!-- Firebase SDK v10 (Async Load into Window with Offline IndexedDB Cache) -->
-    <script>
-        (async function() {
-            try {
-                const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
-                const {
-                    getFirestore,
-                    initializeFirestore,
-                    persistentLocalCache,
-                    persistentMultipleTabManager,
-                    collection,
-                    doc,
-                    setDoc,
-                    deleteDoc,
-                    onSnapshot,
-                    getDocs,
-                    getDoc,
-                    query,
-                    where,
-                    orderBy,
-                    limit,
-                    getDocsFromCache,
-                    getDocFromCache
-                } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-                const { getAuth, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
-
-                window.FirebaseSDK = {
-                    initializeApp,
-                    getApps,
-                    getApp,
-                    getFirestore,
-                    initializeFirestore,
-                    persistentLocalCache,
-                    persistentMultipleTabManager,
-                    collection,
-                    doc,
-                    setDoc,
-                    deleteDoc,
-                    onSnapshot,
-                    getDocs,
-                    getDoc,
-                    query,
-                    where,
-                    orderBy,
-                    limit,
-                    getDocsFromCache,
-                    getDocFromCache,
-                    getAuth,
-                    signInAnonymously
-                };
-
-                const apps = getApps();
-                window.firebaseApp = apps.length ? getApp() : initializeApp(window.firebaseConfig);
-
-                let firestoreDb = null;
-                try {
-                    firestoreDb = initializeFirestore(window.firebaseApp, {
-                        localCache: persistentLocalCache({
-                            tabManager: persistentMultipleTabManager()
-                        })
-                    });
-                } catch (e) {
-                    firestoreDb = getFirestore(window.firebaseApp);
-                }
-                window.firebaseDb = firestoreDb;
-
-                window.firebaseAuth = getAuth(window.firebaseApp);
-                signInAnonymously(window.firebaseAuth).catch(err => console.warn("Anonymous auth note:", err.message));
-                window.dispatchEvent(new Event('firebase-sdk-ready'));
-            } catch(e) {
-                console.warn("Eager Firebase Init Error:", e);
-            }
-        })();
-    </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hệ thống Quản lý Điện tử — Đội Văn Phòng Đoàn - Hội TDTU</title>
+  <link rel="icon" href="./logo.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
 </head>
-<body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+<body class="bg-[#F4F6F9] text-slate-900 dark:bg-[#0B1220] dark:text-slate-100 antialiased">
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

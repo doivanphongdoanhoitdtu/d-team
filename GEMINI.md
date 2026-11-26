@@ -1,61 +1,46 @@
-# GEMINI.md — Hướng Dẫn Ngữ Cảnh Dự Án (D-Team 2026)
+# GEMINI.md — Hướng Dẫn Ngữ Cảnh Dự Án (D-Team v2.0)
 
-Tài liệu này cung cấp ngữ cảnh kiến trúc, quy ước mã nguồn và lưu ý vận hành cho AI agent và lập trình viên khi làm việc trên repository **Hệ thống Quản lý Điện tử - Đội Văn Phòng Đoàn - Hội TDTU**.
-
----
-
-## 1. Tổng Quan Kiến Trúc
-
-- **Framework**: Vue 3 (`^3.4.0`) sử dụng `<script setup>` và hệ thống **Composables** (`src/composables/*`) để quản lý trạng thái và nghiệp vụ, không dùng Vuex/Pinia hay Vue Router (điều hướng tab trực tiếp qua `currentTab` trong `src/App.vue`).
-- **Build Tool**: Vite (`^6.2.0`), cấu hình `base: './'`, dev server chạy tại port `3000`, build output ra `dist/`.
-- **Styling**: Tailwind CSS (nạp qua CDN trong `index.html` với `darkMode: 'class'`) kết hợp `src/style.css`.
-- **Backend / Database**: Google Firebase Cloud Firestore (dự án `sctdt-a6bf9`), SDK v10.8.0 nạp qua CDN trong `index.html` gắn vào `window.FirebaseSDK`, `window.firebaseDb`, `window.firebaseAuth` cùng IndexedDB offline persistence (`persistentLocalCache` + `persistentMultipleTabManager`).
+Tài liệu ngữ cảnh kiến trúc và quy ước mã nguồn cho **Hệ thống Quản lý Điện tử — Đội Văn Phòng Đoàn - Hội TDTU**.
 
 ---
 
-## 2. Cấu Trúc Thư Mục & Trách Nhiệm
+## 1. Tổng Quan Kiến Trúc (v2.0)
 
-- `src/App.vue`: Root component, quản lý layout tổng thể, bộ lọc tháng/tuần toàn cục (`selectedMonth`, `selectedWeek`), danh sách `tabs` phân quyền theo `currentUserRole` (`admin` vs `member`), và gắn kết tất cả composables/modals.
-- `src/composables/`:
-  - `useCloud.js`: Quản lý kết nối Firebase, listener `onSnapshot`, tối ưu lượt đọc Firestore và đồng bộ cache `localStorage`.
-  - `useAuth.js`: Đăng nhập bằng MSSV hoặc tài khoản `admin`, xác định vai trò, lưu phiên đăng nhập (`socatruc_*` trong `localStorage`).
-  - `useActivities.js`: Nghiệp vụ hoạt động, học kỳ, đăng ký ca hoạt động, điểm danh minh chứng & đơn xin nghỉ hoạt động.
-  - `useShifts.js`: Nghiệp vụ điểm danh ca trực, đăng ký ca, ca đã đăng ký và xét duyệt đơn nghỉ phép.
-  - `useMembers.js`: Quản lý danh sách thành viên, ban hoạt động và nhập hàng loạt.
-  - `useAnime.js`: Wrapper Anime.js v4 (`animateStagger`, `animateCounter`, `animateTabEnter`).
-  - `useNotifications.js` + `public/sw.js`: Thông báo trình duyệt qua Service Worker (`/sw.js`).
-  - `useNetwork.js`, `useHaptics.js`, `useStorage.js`, `useTheme.js`, `useToast.js`: Tiện ích mạng, rung phản hồi, lưu trữ, giao diện sáng/tối và toast.
+- **Framework**: Vue 3 (`^3.4.0`, `<script setup>`) + **Pinia** (`src/stores/*`) quản lý trạng thái theo domain.
+- **Build & Styling**: Vite (`^6.2.0`, `base: './'`) + **Tailwind CSS v4** (`@tailwindcss/vite`, `@custom-variant dark`) + **Lucide Icons** (`lucide-vue-next`). Không dùng CDN cho Vue, Tailwind, Firebase, Chart.js hay XLSX.
+- **Backend / Database**: Firebase Cloud Firestore (`sctdt-a6bf9`, gói Spark miễn phí) qua npm `firebase` (`src/services/firebase.js`) với `persistentLocalCache` + `persistentMultipleTabManager` và Anonymous Auth.
+- **Thiết kế giao diện**: Phong cách **Classic Đoàn - Hội Blue** (`#0052A5` primary, `#C8102E` TDTU red accent, phẳng, nghiêm túc, không gradient/glow/emoji rườm rà).
+
+---
+
+## 2. Cấu Trúc Thư Mục
+
+- `src/services/`:
+  - `firebase.js`: Khởi tạo Firebase SDK v12, IndexedDB offline cache, đổi cấu hình động.
+  - `security.js`: Băm mật khẩu PBKDF2-SHA256, ký xác thực phiên (TTL + anti-tampering), rate limiting, sanitize Excel formula injection.
+- `src/stores/`:
+  - `ui.js`: Theme sáng/tối, toast, confirm modal, tab hiện tại, bộ lọc tháng/tuần, trạng thái mạng.
+  - `auth.js`: Đăng nhập Thành viên (chỉ MSSV), đăng nhập Admin (PBKDF2 + tự động migrate từ tài khoản cũ + `sessions/{uid}`), đổi mật khẩu Admin.
+  - `data.js`: Listener Firestore tối ưu quota (cửa sổ từ ngày 01 tháng trước), sửa đồng bộ `leave_requests` cả `shiftDate` lẫn `date`, lazy-load ảnh minh chứng từ `activity_proofs` (tương thích ngược `proofImage` cũ), `writeBatch` khi nhập/xóa hàng loạt.
+- `src/utils/`:
+  - `date.js`: Ngày giờ địa phương & chuẩn chia 4 tuần báo cáo thống nhất (`1–8`, `9–18`, `19–25`, `26–cuối`).
+  - `normalizers.js`: Chuẩn hóa dữ liệu Firestore tương thích ngược 100% với dữ liệu cũ.
+  - `imageCompress.js`: Nén ảnh thẻ SV phía client (~60–140KB).
+  - `exporters.js` + `fileExport.js`: Xuất báo cáo Excel (lazy `import('xlsx')`).
+  - `notifications.js`: Nhắc ca trực trong phiên qua Web Notification / Service Worker (`./sw.js`).
 - `src/components/`:
-  - `activities/`: `AdminActivityManager.vue`, `UserActivityPortal.vue`
   - `auth/`: `LoginGatekeeper.vue`
-  - `common/`: `AppHeader.vue`, `AppNavigation.vue`, `NetworkStatusBanner.vue`, `Toast.vue`
-  - `modals/`: `ActivityDetailModal.vue`, `BatchImportModal.vue`, `ConfigModal.vue`, `ConfirmDeleteModal.vue`, `LeaveActivityModal.vue`, `MemberModal.vue`, `NotificationModal.vue`, `ShiftSettingsModal.vue`
+  - `common/`: `AppSidebar.vue`, `AppTopBar.vue`, `MobileBottomNav.vue`, `NetworkStatusBanner.vue`, `Toast.vue`
+  - `activities/`: `AdminActivityManager.vue`, `UserActivityPortal.vue`
   - `tabs/`: `TabDashboard.vue`, `TabLeaveRequests.vue`, `TabMembersList.vue`, `TabMyRegisteredShifts.vue`, `TabShiftEntry.vue`, `TabShiftHistory.vue`, `TabShiftRegister.vue`
-- `src/utils/fileExport.js`: Xuất báo cáo Excel (`.xlsx`) bằng SheetJS (`xlsx`).
+  - `modals/`: `ActivityDetailModal.vue`, `BatchImportModal.vue`, `ChangePasswordModal.vue`, `ConfigModal.vue`, `ConfirmDeleteModal.vue`, `LeaveActivityModal.vue`, `MemberModal.vue`, `NotificationModal.vue`, `ShiftSettingsModal.vue`
+- `firestore.rules` & `SECURITY.md`: Quy tắc bảo mật Firestore và hướng dẫn triển khai.
 
 ---
 
-## 3. Quy Ước Quan Trọng Khi Sửa Code
+## 3. Lệnh Phát Triển & Kiểm Thử
 
-1. **Tối ưu lượt đọc Firestore (`useCloud.js`)**:
-   - Không mở `onSnapshot` toàn bộ lịch sử không giới hạn cho `shifts`, `registrations`, `leave_requests`, `activities`, `activity_registrations`. Các collection này đang được giới hạn bằng `where('date', '>=', minDate)` (cửa sổ từ ngày 01 của tháng trước) và gộp với cache `localStorage`.
-   - Khi người dùng xem tháng cũ hơn cửa sổ active, sử dụng `fetchArchiveMonthShifts(monthStr)` để truy vấn theo nhu cầu (`getDocs`).
-   - `admin_accounts` chỉ đọc 1 lần bằng `getDocs` khi khởi tạo, không giữ listener realtime.
-   - Tránh gọi `initCloudRealtime(true)` nếu không thực sự thay đổi cấu hình Firebase.
-2. **Phân quyền Tab (`src/App.vue`)**:
-   - `member` thấy 5 tab: `activities`, `entry`, `register`, `my-shifts`, `leave`.
-   - `admin` thấy 8 tab: thêm `dashboard`, `history`, `members` và badge số đơn nghỉ phép chờ duyệt trên tab `leave`.
-3. **Giao diện Mobile & Dark Mode**:
-   - Đảm bảo tương thích lớp `.dark-mode` (CSS custom / Tailwind `darkMode: 'class'`).
-   - Lưu ý khoảng đệm đáy (`pb-36 sm:pb-8` ở `<main>`) để thanh `AppNavigation` dạng bottom-bar trên mobile không che khuất nội dung.
-4. **Ngôn ngữ hiển thị**:
-   - Toàn bộ UI, thông báo Toast và nhãn giao diện sử dụng **tiếng Việt**.
-
----
-
-## 4. Lệnh Phát Triển & Triển Khai
-
-- Cài đặt thư viện: `npm install`
-- Chạy dev server (port 3000): `npm run dev`
-- Build production: `npm run build` (xuất ra `dist/`)
-- Deploy: Tự động qua GitHub Actions (`.github/workflows/deploy.yml`) khi push lên nhánh `main`.
+- Cài đặt: `npm install`
+- Chạy dev (port 3000): `npm run dev`
+- Chạy unit test (Vitest): `npm test`
+- Build production: `npm run build`

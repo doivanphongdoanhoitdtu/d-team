@@ -1,70 +1,79 @@
 <template>
-  <Transition name="modal-fade">
-    <div v-if="show" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-800 my-auto max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+  <Transition name="modal">
+    <div
+      v-if="ui.showConfigModal"
+      class="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4 overflow-y-auto"
+      @click.self="ui.showConfigModal = false"
+    >
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 shadow-xl space-y-4 my-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h3 class="font-extrabold text-slate-800 dark:text-white text-base flex items-center gap-2">
-              <i class="fa-solid fa-gear text-indigo-600"></i> Cấu Hình Hệ Thống
-            </h3>
-            <p class="text-[11px] text-slate-400 font-semibold mt-0.5">
-              Quản trị kết nối cơ sở dữ liệu và tiện ích hệ thống
-            </p>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Cấu hình hệ thống</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Thiết lập kết nối Firebase Firestore và sao lưu Google Drive.</p>
           </div>
-          <button @click="$emit('close')" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-            <i class="fa-solid fa-xmark text-lg"></i>
+          <button type="button" @click="ui.showConfigModal = false" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+            <X class="w-4 h-4" />
           </button>
         </div>
 
-        <!-- Firebase Cloud Config -->
-        <div class="text-xs space-y-1.5">
-          <label class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <i class="fa-solid fa-fire text-amber-500"></i> 1. Cấu Hình Firebase Firestore Cloud:
-          </label>
-          <textarea :value="configInput" @input="$emit('update:configInput', $event.target.value)" rows="3"
-                    placeholder='{"apiKey": "AIza...", "projectId": "sctdt-a6bf9"}'
-                    class="w-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
-          <p class="text-[10px] text-slate-400">Dán trực tiếp JSON config Firebase từ Firebase Console > Project Settings</p>
-        </div>
+        <div class="space-y-4 text-xs">
+          <div class="space-y-1.5">
+            <label class="block font-semibold text-slate-700 dark:text-slate-300">
+              1. Cấu hình Firebase Firestore (JSON)
+            </label>
+            <textarea
+              v-model="configText"
+              rows="5"
+              class="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-600"
+            ></textarea>
+          </div>
 
-        <!-- Google Drive Script URL Config -->
-        <div class="text-xs space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <label class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <i class="fa-brands fa-google-drive text-emerald-500"></i> 2. Google Apps Script Web App URL (Sao Lưu Drive):
-          </label>
-          <input type="url" v-model="driveScriptUrlInput"
-                 placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-                 class="w-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-          <p class="text-[10px] text-slate-400">Dán URL Web App đã triển khai từ Google Apps Script để sao lưu ảnh thẻ sinh viên lên Drive</p>
-        </div>
+          <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <label class="block font-semibold text-slate-700 dark:text-slate-300">
+              2. Google Apps Script Web App URL (Sao lưu ảnh Drive)
+            </label>
+            <input
+              v-model="driveUrl"
+              type="url"
+              placeholder="https://script.google.com/macros/s/.../exec"
+              class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-600"
+            />
+          </div>
 
-        <!-- Tiện Ích Trình Duyệt -->
-        <div class="text-xs space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <label class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <i class="fa-solid fa-sliders text-indigo-500"></i> 3. Kiểm Tra Tiện Ích Trình Duyệt:
-          </label>
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" @click="handleTestNotif"
-                    class="p-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs">
-              <i class="fa-solid fa-bell text-indigo-500"></i> Thử Thông Báo
-            </button>
-            <button type="button" @click="handleTestHaptic"
-                    class="p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs">
-              <i class="fa-solid fa-hand-pointer text-amber-500"></i> Thử Rung Phản Hồi
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+            <span class="font-semibold text-slate-700 dark:text-slate-300">3. Kiểm tra thông báo trình duyệt</span>
+            <button
+              type="button"
+              @click="testNotification"
+              class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+            >
+              Gửi thông báo thử
             </button>
           </div>
         </div>
 
-        <div class="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-800">
-          <button @click="$emit('reset-default')" class="text-xs text-rose-600 dark:text-rose-400 font-bold hover:underline cursor-pointer">
+        <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+          <button
+            type="button"
+            @click="handleReset"
+            class="text-[#c8102e] dark:text-red-400 font-semibold hover:underline cursor-pointer"
+          >
             Khôi phục mặc định
           </button>
           <div class="flex gap-2">
-            <button @click="$emit('close')" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl cursor-pointer">
+            <button
+              type="button"
+              @click="ui.showConfigModal = false"
+              class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+            >
               Đóng
             </button>
-            <button @click="handleSaveAll" class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow cursor-pointer transition">
-              Lưu cấu hình
+            <button
+              type="button"
+              @click="handleSave"
+              class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold cursor-pointer"
+            >
+              Lưu &amp; kết nối lại
             </button>
           </div>
         </div>
@@ -74,36 +83,73 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useNotifications } from '../../composables/useNotifications.js';
-import { useHaptics } from '../../composables/useHaptics.js';
+import { ref, watch } from 'vue';
+import { X } from 'lucide-vue-next';
+import { useUiStore } from '../../stores/ui.js';
+import { useDataStore } from '../../stores/data.js';
+import {
+  getSavedFirebaseConfig,
+  saveCustomFirebaseConfig,
+  resetSavedFirebaseConfig
+} from '../../services/firebase.js';
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  showWebNotification
+} from '../../utils/notifications.js';
 
-defineProps(['show', 'configInput']);
-const emit = defineEmits(['close', 'save', 'reset-default', 'update:configInput']);
+const ui = useUiStore();
+const data = useDataStore();
 
-const { sendTestNotification } = useNotifications();
-const { notificationSuccess } = useHaptics();
+const configText = ref('');
+const driveUrl = ref('');
 
-const driveScriptUrlInput = ref(localStorage.getItem('google_drive_script_url') || '');
-
-onMounted(() => {
-  driveScriptUrlInput.value = localStorage.getItem('google_drive_script_url') || '';
+watch(() => ui.showConfigModal, (open) => {
+  if (open) {
+    configText.value = JSON.stringify(getSavedFirebaseConfig(), null, 2);
+    driveUrl.value = localStorage.getItem('google_drive_script_url') || '';
+  }
 });
 
-const handleTestNotif = () => {
-  sendTestNotification('Hệ Thống Quản Lý ĐVP', 'Kiểm tra thông báo và nhắc ca trực hoạt động tốt! 🚀');
-};
-
-const handleTestHaptic = () => {
-  notificationSuccess();
-};
-
-const handleSaveAll = () => {
-  if (driveScriptUrlInput.value) {
-    localStorage.setItem('google_drive_script_url', driveScriptUrlInput.value.trim());
-  } else {
-    localStorage.removeItem('google_drive_script_url');
+async function handleSave() {
+  try {
+    const parsed = JSON.parse(configText.value.trim());
+    saveCustomFirebaseConfig(parsed);
+    if (driveUrl.value.trim()) {
+      localStorage.setItem('google_drive_script_url', driveUrl.value.trim());
+    } else {
+      localStorage.removeItem('google_drive_script_url');
+    }
+    ui.showConfigModal = false;
+    await data.initCloud(true);
+    ui.showToast('Đã lưu cấu hình và kết nối lại Cloud Firestore.', 'success');
+  } catch (err) {
+    ui.showToast(`Cấu hình JSON không hợp lệ: ${err.message}`, 'error');
   }
-  emit('save');
-};
+}
+
+async function handleReset() {
+  const def = resetSavedFirebaseConfig();
+  configText.value = JSON.stringify(def, null, 2);
+  localStorage.removeItem('google_drive_script_url');
+  driveUrl.value = '';
+  ui.showConfigModal = false;
+  await data.initCloud(true);
+  ui.showToast('Đã khôi phục cấu hình Firebase mặc định.', 'info');
+}
+
+async function testNotification() {
+  let perm = getNotificationPermission();
+  if (perm !== 'granted') {
+    perm = await requestNotificationPermission();
+  }
+  if (perm === 'granted') {
+    await showWebNotification('Hệ thống Quản lý ĐVP', {
+      body: 'Thông báo nhắc lịch trực trên trình duyệt đang hoạt động bình thường.'
+    });
+    ui.showToast('Đã gửi thông báo thử.', 'success');
+  } else {
+    ui.showToast('Trình duyệt chưa cấp quyền hiển thị thông báo.', 'warning');
+  }
+}
 </script>

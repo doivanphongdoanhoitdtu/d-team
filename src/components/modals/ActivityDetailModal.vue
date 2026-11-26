@@ -1,550 +1,332 @@
 <template>
-  <Transition name="modal-fade">
-    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-2xl w-full border border-slate-100 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden">
-        <!-- Header (Fixed top) -->
-        <div class="flex items-center justify-between p-4 sm:p-5 pb-3 sm:pb-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
-          <div>
-            <span class="px-2.5 py-1 text-[11px] font-black rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
-              {{ activity?.semester }}
+  <Transition name="modal">
+    <div
+      v-if="show && activity"
+      class="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4"
+      @click.self="$emit('close')"
+    >
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-2xl w-full shadow-xl flex flex-col max-h-[90vh] overflow-hidden">
+        <!-- Header -->
+        <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3 shrink-0">
+          <div class="min-w-0">
+            <span class="px-2 py-0.5 rounded bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 text-[11px] font-semibold">
+              {{ activity.semester || 'Hoạt động' }}
             </span>
-            <h3 class="font-extrabold text-slate-800 dark:text-white text-base sm:text-lg mt-1 break-words">{{ activity?.name }}</h3>
-            <p class="text-xs text-slate-500 font-medium flex items-center gap-2 mt-0.5 flex-wrap">
-              <span><i class="fa-solid fa-calendar-days text-indigo-500"></i> {{ formatDate(activity?.date) }}</span>
-              <span>•</span>
-              <span class="truncate max-w-[200px] sm:max-w-none"><i class="fa-solid fa-location-dot text-rose-500"></i> {{ activity?.location || 'Trường ĐH' }}</span>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white mt-1 leading-snug">
+              {{ activity.name }}
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5 tabular-nums">
+              {{ formatDate(activity.date) }} · {{ activity.location || 'Trường ĐH' }}
             </p>
           </div>
-          <button @click="$emit('close')" class="text-slate-400 hover:text-slate-600 p-2 rounded-xl cursor-pointer shrink-0">
-            <i class="fa-solid fa-xmark text-xl"></i>
+          <button type="button" @click="$emit('close')" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+            <X class="w-5 h-5" />
           </button>
         </div>
 
-        <!-- Main Scrollable Body (Unifies stats, check-in, tabs, and lists into ONE scroll container) -->
-        <div class="flex-grow overflow-y-auto p-4 sm:p-5 space-y-3.5 sm:space-y-4">
-          <!-- Stats Quick Bar -->
-          <div class="grid grid-cols-2 gap-2.5 sm:gap-3 py-2 bg-slate-50 dark:bg-slate-800/60 rounded-2xl px-3 sm:px-4 border border-slate-100 dark:border-slate-800">
-            <div @click="activeListTab = activeListTab === 'present' ? 'all' : 'present'"
-                 class="flex items-center gap-2.5 sm:gap-3 cursor-pointer p-1.5 rounded-xl transition hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30"
-                 :class="activeListTab === 'present' ? 'ring-2 ring-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/50' : ''">
-              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-base sm:text-lg shrink-0">
-                <i class="fa-solid fa-user-check"></i>
-              </div>
-              <div class="min-w-0">
-                <div class="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 leading-tight">{{ stats?.totalCheckIns || 0 }}</div>
-                <div class="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Đã điểm danh</div>
-              </div>
+        <!-- Scrollable Body -->
+        <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+          <!-- Summary Counts -->
+          <div class="grid grid-cols-3 gap-2.5 text-center">
+            <div class="p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/70">
+              <div class="text-lg font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{{ stats.totalCheckIns }}</div>
+              <div class="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Đã điểm danh</div>
             </div>
-            <div @click="activeListTab = activeListTab === 'leave' ? 'all' : 'leave'"
-                 class="flex items-center gap-2.5 sm:gap-3 cursor-pointer p-1.5 rounded-xl transition hover:bg-amber-50/50 dark:hover:bg-amber-950/30"
-                 :class="activeListTab === 'leave' ? 'ring-2 ring-amber-500 bg-amber-50/80 dark:bg-amber-950/50' : ''">
-              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-base sm:text-lg shrink-0">
-                <i class="fa-solid fa-user-xmark"></i>
-              </div>
-              <div class="min-w-0">
-                <div class="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 leading-tight">{{ stats?.totalLeaves || 0 }}</div>
-                <div class="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Đã xin nghỉ</div>
-              </div>
+            <div class="p-2.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/70">
+              <div class="text-lg font-bold text-amber-700 dark:text-amber-400 tabular-nums">{{ stats.totalLeaves }}</div>
+              <div class="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Xin nghỉ</div>
+            </div>
+            <div class="p-2.5 rounded-lg bg-brand-50/60 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800/70">
+              <div class="text-lg font-bold text-brand-700 dark:text-brand-400 tabular-nums">{{ stats.totalRegistrations }}</div>
+              <div class="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Lượt đăng ký</div>
             </div>
           </div>
 
-          <!-- Admin Check-In On Behalf Form -->
-          <div class="p-3 sm:p-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-2xl border border-indigo-200/70 dark:border-indigo-900/60 space-y-2.5">
-            <div class="flex items-center justify-between gap-1.5 cursor-pointer select-none"
-                 @click="isCheckInFormOpen = !isCheckInFormOpen">
-              <div class="text-xs font-black text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5 uppercase">
-                <i class="fa-solid fa-user-shield text-indigo-600"></i>
-                <span>Điểm Danh Hộ / Điểm Danh Bù</span>
-              </div>
-              <button type="button" class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 py-0.5 px-2 rounded-lg bg-indigo-100/70 dark:bg-indigo-900/60 transition">
-                <span>{{ isCheckInFormOpen ? 'Thu gọn ▴' : 'Mở form ▾' }}</span>
+          <!-- Admin Check-in On Behalf -->
+          <div class="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-800 dark:text-slate-200">Điểm danh hộ / điểm danh bù</span>
+              <button
+                type="button"
+                @click="isFormOpen = !isFormOpen"
+                class="text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer"
+              >
+                {{ isFormOpen ? 'Thu gọn' : 'Mở rộng' }}
               </button>
             </div>
 
-            <div v-show="isCheckInFormOpen" class="space-y-2.5 pt-1">
-              <!-- Toggle Filter Mode -->
-              <div class="flex items-center justify-between gap-1">
-                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 hidden sm:inline">Phạm vi tìm kiếm:</span>
-                <div class="flex items-center gap-1 text-[10px] font-bold bg-white/80 dark:bg-slate-900/80 p-0.5 rounded-xl border border-indigo-200/60 dark:border-indigo-800/60 w-full sm:w-auto">
-                  <button type="button" @click="filterOnlyRegistered = true"
-                          class="flex-1 sm:flex-none px-2.5 py-1 rounded-lg transition cursor-pointer text-center"
-                          :class="filterOnlyRegistered ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'">
-                    Đã đăng ký ({{ uniqueRegisteredMembersCount }})
-                  </button>
-                  <button type="button" @click="filterOnlyRegistered = false"
-                          class="flex-1 sm:flex-none px-2.5 py-1 rounded-lg transition cursor-pointer text-center"
-                          :class="!filterOnlyRegistered ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'">
-                    Tất cả thành viên
-                  </button>
-                </div>
+            <div v-show="isFormOpen" class="space-y-2.5">
+              <div class="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  @click="onlyRegistered = true"
+                  class="px-2.5 py-1 rounded-md font-semibold cursor-pointer"
+                  :class="onlyRegistered ? 'bg-brand-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'"
+                >
+                  Đã đăng ký
+                </button>
+                <button
+                  type="button"
+                  @click="onlyRegistered = false"
+                  class="px-2.5 py-1 rounded-md font-semibold cursor-pointer"
+                  :class="!onlyRegistered ? 'bg-brand-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'"
+                >
+                  Tất cả thành viên
+                </button>
               </div>
 
-              <!-- 1. Search Member Input (When no member is chosen yet) -->
-              <div v-if="!selectedAdminMember" class="space-y-1.5">
-                <div class="relative flex items-center">
-                  <i class="fa-solid fa-magnifying-glass absolute left-3 text-indigo-400 text-xs"></i>
-                  <input type="text"
-                         v-model="memberSearchQuery"
-                         :placeholder="filterOnlyRegistered ? 'Nhập tên hoặc MSSV thành viên đã đăng ký...' : 'Nhập tên hoặc MSSV để tìm trong tất cả...'"
-                         class="w-full text-xs pl-8 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 rounded-xl font-bold text-slate-800 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                  <button v-if="memberSearchQuery" @click="memberSearchQuery = ''"
-                          type="button"
-                          class="absolute right-2.5 text-slate-400 hover:text-slate-600 p-1 text-xs cursor-pointer">
-                    <i class="fa-solid fa-xmark"></i>
-                  </button>
-                </div>
-
-                <!-- Autocomplete / Filtered Members List (Responsive item layout) -->
-                <div class="max-h-40 sm:max-h-48 overflow-y-auto rounded-xl border border-indigo-100 dark:border-indigo-900/60 bg-white dark:bg-slate-900 shadow-md divide-y divide-slate-100 dark:divide-slate-800">
-                  <div v-if="candidateMembers.length === 0" class="p-3 text-center text-xs text-slate-400 italic">
-                    {{ memberSearchQuery ? 'Không tìm thấy thành viên phù hợp.' : 'Chưa có thành viên nào trong danh sách đăng ký.' }}
+              <div v-if="!selectedMember" class="space-y-1.5">
+                <input
+                  v-model="memberQuery"
+                  type="text"
+                  placeholder="Tìm theo tên hoặc MSSV..."
+                  class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+                />
+                <div class="max-h-40 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900">
+                  <div v-if="candidates.length === 0" class="p-3 text-center text-slate-400">
+                    Không có thành viên phù hợp.
                   </div>
-                  <div v-for="m in candidateMembers" :key="m.id"
-                       @click="selectAdminMember(m)"
-                       class="p-2 sm:p-2.5 hover:bg-indigo-50/70 dark:hover:bg-slate-800/80 cursor-pointer transition flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                    <!-- Top row on mobile / Left on desktop -->
-                    <div class="flex items-center justify-between gap-2 min-w-0">
-                      <div class="flex items-center gap-2 min-w-0">
-                        <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
-                          {{ m.name ? m.name.charAt(0).toUpperCase() : 'U' }}
-                        </div>
-                        <div class="min-w-0">
-                          <div class="text-xs font-bold text-slate-800 dark:text-white truncate">
-                            {{ m.name }}
-                            <span class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 ml-1">[{{ m.id }}]</span>
-                          </div>
-                          <div class="text-[10px] text-slate-400 truncate">{{ m.department || 'Ban chưa đặt' }}</div>
-                        </div>
-                      </div>
-                      <span class="sm:hidden text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 shrink-0">
-                        Chọn ➔
-                      </span>
-                    </div>
-
-                    <!-- Badges row: wraps gracefully without overflow -->
-                    <div class="flex flex-wrap items-center gap-1 sm:shrink-0 pl-9 sm:pl-0">
-                      <span v-if="getMemberRegisteredShiftsCount(m.id) > 0"
-                            class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
-                        {{ getMemberRegisteredShiftsCount(m.id) }} ca
-                      </span>
-                      <span v-if="isMemberAnyLeave(m.id)"
-                            class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">
-                        ⚠️ Vắng ca
-                      </span>
-                      <span v-if="isMemberAnyCheckedIn(m.id)"
-                            class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                        ✓ Đã điểm danh
-                      </span>
-                      <span class="hidden sm:inline-block text-[11px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 ml-1">
-                        Chọn ➔
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 2. Selected Member Panel & Shift Selection -->
-              <div v-else class="space-y-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-indigo-200 dark:border-indigo-800">
-                <!-- Member Header & Change Button -->
-                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                  <div class="flex items-center gap-2.5 min-w-0">
-                    <div class="w-8 h-8 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                      {{ selectedAdminMember.name ? selectedAdminMember.name.charAt(0).toUpperCase() : 'U' }}
-                    </div>
+                  <button
+                    v-for="m in candidates"
+                    :key="m.id"
+                    type="button"
+                    @click="selectMember(m)"
+                    class="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between gap-2 cursor-pointer"
+                  >
                     <div class="min-w-0">
-                      <div class="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5 truncate">
-                        <span class="truncate">{{ selectedAdminMember.name }}</span>
-                        <span class="text-indigo-600 dark:text-indigo-400 font-extrabold shrink-0">[{{ selectedAdminMember.id }}]</span>
-                      </div>
-                      <div class="text-[10px] text-slate-400 truncate">{{ selectedAdminMember.department || 'Ban chưa đặt' }}</div>
+                      <span class="font-semibold text-slate-900 dark:text-white">{{ m.name }}</span>
+                      <span class="font-mono text-slate-500 ml-1.5">{{ m.id }}</span>
                     </div>
-                  </div>
+                    <span class="text-brand-600 dark:text-brand-400 font-semibold shrink-0">Chọn</span>
+                  </button>
+                </div>
+              </div>
 
-                  <button type="button" @click="selectedAdminMember = null; selectedShift = null;"
-                          class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1 shrink-0 ml-2">
-                    <i class="fa-solid fa-arrows-rotate"></i> Đổi
+              <div v-else class="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <span class="font-bold text-slate-900 dark:text-white">{{ selectedMember.name }}</span>
+                    <span class="font-mono text-slate-500 ml-1.5">{{ selectedMember.id }}</span>
+                  </div>
+                  <button type="button" @click="selectedMember = null; selectedShift = null" class="text-brand-600 font-semibold hover:underline cursor-pointer">
+                    Đổi
                   </button>
                 </div>
 
-                <!-- Shifts that this member registered for -->
-                <div>
-                  <div class="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between flex-wrap gap-1">
-                    <span>Chọn ca hoạt động để điểm danh:</span>
-                    <span v-if="memberRegisteredShifts.length > 0" class="text-[10px] text-sky-600 font-semibold">
-                      (Đã đăng ký {{ memberRegisteredShifts.length }} ca)
-                    </span>
-                  </div>
-
-                  <!-- Case A: Member registered for specific shifts -->
-                  <div v-if="memberRegisteredShifts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div v-for="s in memberRegisteredShifts" :key="s.id"
-                         @click="selectedShift = s"
-                         class="p-2 sm:p-2.5 rounded-xl border text-xs cursor-pointer transition flex items-center justify-between gap-1.5"
-                         :class="selectedShift?.id === s.id
-                           ? 'bg-indigo-50 border-indigo-500 dark:bg-indigo-950/60 dark:border-indigo-500 text-indigo-950 dark:text-indigo-100 ring-2 ring-indigo-500 shadow-xs'
-                           : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'">
-                      <div class="min-w-0">
-                        <div class="font-bold flex items-center gap-1.5 text-xs truncate">
-                          <i class="fa-solid fa-calendar-day text-indigo-500 shrink-0"></i>
-                          <span>{{ formatDate(s.date) }}</span>
-                        </div>
-                        <div class="text-[11px] font-extrabold text-indigo-700 dark:text-indigo-300 mt-0.5 truncate">
-                          {{ s.shiftType }}
-                        </div>
-                        <div v-if="s.notes" class="text-[10px] text-slate-400 italic mt-0.5 truncate">
-                          "{{ s.notes }}"
-                        </div>
-                        <div v-if="isMemberShiftAbsent(selectedAdminMember.id, s)" class="mt-1">
-                          <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-block">
-                            ⚠️ Đã xin nghỉ ca này
-                          </span>
-                        </div>
-                      </div>
-
-                      <div class="shrink-0 ml-1.5">
-                        <span v-if="selectedShift?.id === s.id" class="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px]">
-                          <i class="fa-solid fa-check"></i>
-                        </span>
-                        <span v-else class="w-5 h-5 rounded-full border border-slate-300 dark:border-slate-600 inline-block"></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Case B: Member didn't register for any specific shift -->
-                  <div v-else class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-500">
-                    <div class="flex items-center gap-1.5 text-amber-600 font-bold mb-0.5">
-                      <i class="fa-solid fa-triangle-exclamation"></i> Thành viên này chưa đăng ký ca cụ thể.
-                    </div>
-                    <div>Điểm danh cho toàn bộ hoạt động ngày <b>{{ formatDate(activity?.date) }}</b>.</div>
-                  </div>
+                <div v-if="memberShifts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <button
+                    v-for="s in memberShifts"
+                    :key="s.id"
+                    type="button"
+                    @click="selectedShift = s"
+                    class="p-2 rounded-lg border text-left transition cursor-pointer"
+                    :class="selectedShift?.id === s.id
+                      ? 'bg-brand-50 dark:bg-brand-900/40 border-brand-600 text-brand-900 dark:text-brand-200 font-semibold'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'"
+                  >
+                    {{ formatDate(s.date) }} · {{ s.shiftType }}
+                  </button>
                 </div>
 
-                <!-- Action Button -->
-                <div class="pt-1 flex items-center justify-end gap-2">
-                  <button type="button" @click="selectedAdminMember = null; selectedShift = null;"
-                          class="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs transition cursor-pointer">
+                <div class="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    @click="selectedMember = null; selectedShift = null"
+                    class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer"
+                  >
                     Hủy
                   </button>
-                  <button @click="handleAdminCheckIn"
-                          type="button"
-                          class="px-4 sm:px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
-                    <i class="fa-solid fa-user-check"></i>
-                    <span>Điểm Danh Hộ {{ selectedShift ? `(${selectedShift.shiftType})` : '' }}</span>
+                  <button
+                    type="button"
+                    @click="confirmAdminCheckIn"
+                    class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold cursor-pointer"
+                  >
+                    Xác nhận điểm danh hộ
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Detail Lists Filter Tabs (Sticky below header for effortless switching) -->
-          <!-- Detail Lists Filter Tabs (Sticky below header for effortless switching) -->
-          <div class="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs py-1.5 -mx-4 px-4 sm:-mx-5 sm:px-5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto text-xs font-bold scrollbar-none overscroll-x-contain">
-            <button type="button" @click="activeListTab = 'all'"
-                    class="px-3 py-1.5 rounded-xl transition cursor-pointer shrink-0"
-                    :class="activeListTab === 'all' ? 'bg-indigo-600 text-white shadow-2xs font-extrabold' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'">
-              Tất Cả
-            </button>
-            <button type="button" @click="activeListTab = 'present'"
-                    class="px-3 py-1.5 rounded-xl transition cursor-pointer shrink-0"
-                    :class="activeListTab === 'present' ? 'bg-emerald-600 text-white shadow-2xs font-black' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'">
-              ✓ Có Mặt ({{ stats?.presentList?.length || 0 }})
-            </button>
-            <button type="button" @click="activeListTab = 'leave'"
-                    class="px-3 py-1.5 rounded-xl transition cursor-pointer shrink-0"
-                    :class="activeListTab === 'leave' ? 'bg-amber-500 text-slate-950 shadow-2xs font-black' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100'">
-              ⚠️ Xin Nghỉ ({{ stats?.leaveList?.length || 0 }})
-            </button>
-            <button type="button" @click="activeListTab = 'regs'"
-                    class="px-3 py-1.5 rounded-xl transition cursor-pointer shrink-0"
-                    :class="activeListTab === 'regs' ? 'bg-sky-600 text-white shadow-2xs font-black' : 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 hover:bg-sky-100'">
-              🗓️ Đăng Ký ({{ stats?.regsList?.length || 0 }})
-            </button>
+          <!-- Filter Tabs & Search -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div class="inline-flex gap-1">
+              <button
+                v-for="t in listTabs"
+                :key="t.id"
+                type="button"
+                @click="activeTab = t.id"
+                class="px-2.5 py-1.5 rounded-lg font-semibold cursor-pointer"
+                :class="activeTab === t.id ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+              >
+                {{ t.label }}
+              </button>
+            </div>
+            <input
+              v-model="listQuery"
+              type="text"
+              placeholder="Tìm tên, MSSV..."
+              class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600 sm:w-52"
+            />
           </div>
 
-          <!-- Member Search Bar in Detail Lists -->
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
-              <i class="fa-solid fa-magnifying-glass text-xs"></i>
-            </span>
-            <input type="text" v-model="detailListSearchQuery"
-                   placeholder="Tìm thành viên theo Tên, MSSV, Ca trực, Ghi chú..."
-                   class="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
-            <button v-if="detailListSearchQuery" @click="detailListSearchQuery = ''" type="button"
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
-              <i class="fa-solid fa-circle-xmark text-xs"></i>
-            </button>
-          </div>
-
-          <!-- Detail Lists Content -->
-          <div class="space-y-4">
-            <!-- 1. Present List -->
-            <div v-if="activeListTab === 'all' || activeListTab === 'present'" class="space-y-2">
-              <h4 class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center justify-between">
-                <span class="flex items-center gap-1.5">
-                  <i class="fa-solid fa-circle-check text-emerald-500"></i> Danh sách thành viên điểm danh
-                </span>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
-                  <span v-if="detailListSearchQuery" class="text-indigo-600 dark:text-indigo-400 font-black">{{ filteredPresentList.length }} / </span>
-                  {{ stats?.presentList?.length || 0 }}
-                </span>
-              </h4>
-
-              <div v-if="!filteredPresentList.length" class="text-center py-6 text-xs text-slate-400 font-medium italic bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                {{ detailListSearchQuery ? 'Không tìm thấy thành viên điểm danh khớp từ khóa.' : 'Chưa có lượt điểm danh nào.' }}
-              </div>
-
-              <div v-else class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
-                <div v-for="item in filteredPresentList" :key="item.id" class="p-2.5 sm:p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 space-y-1.5">
-                  <!-- Row 1: Member Info + Proof Image Button + Status Badge -->
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                      <!-- Member Avatar / Photo Thumbnail -->
-                      <div v-if="item.proofImage" @click="openPhotoPreview(item)" class="relative cursor-pointer group shrink-0" title="Bấm để phóng to ảnh thẻ SV">
-                        <img :src="item.proofImage" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover border-2 border-emerald-400 group-hover:scale-105 transition shadow-xs">
-                        <span class="absolute -bottom-1 -right-1 bg-emerald-600 text-white text-[8px] px-1 rounded-full font-bold">
-                          <i class="fa-solid fa-magnifying-glass"></i>
-                        </span>
-                      </div>
-                      <div v-else class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-black text-xs flex items-center justify-center shrink-0">
-                        {{ item.memberName ? item.memberName.charAt(0).toUpperCase() : 'U' }}
-                      </div>
-
-                      <div class="min-w-0">
-                        <div class="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5 flex-wrap">
-                          <span class="truncate">{{ item.memberName }}</span>
-                          <button v-if="item.proofImage" @click="openPhotoPreview(item)" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer shrink-0">
-                            [🖼️ Xem ảnh]
-                          </button>
-                        </div>
-                        <div class="text-[11px] text-slate-400 font-medium">MSSV: {{ item.memberId }}</div>
-                      </div>
-                    </div>
-
-                    <!-- Status Badge -->
-                    <div class="shrink-0 text-right">
-                      <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center gap-1 justify-end">
-                        <i class="fa-solid fa-check"></i> {{ item.adminCheckedIn ? 'Admin Điểm Danh' : 'Có Mặt' }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Row 2: Shift info & Time -->
-                  <div class="flex flex-wrap items-center justify-between gap-1 pt-1.5 border-t border-slate-100 dark:border-slate-800/60 text-[10px]">
-                    <div v-if="item.shiftType" class="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                      <i class="fa-solid fa-clock"></i>
-                      <span>{{ item.shiftType }} {{ item.shiftDate ? `(${formatDate(item.shiftDate)})` : '' }}</span>
-                    </div>
-                    <div class="text-slate-400 ml-auto flex items-center gap-1">
-                      <i class="fa-solid fa-calendar-check"></i>
-                      <span>{{ formatTime(item.timestamp) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <!-- Present List -->
+          <div v-if="activeTab === 'all' || activeTab === 'present'" class="space-y-1.5">
+            <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+              Đã điểm danh ({{ filteredPresent.length }})
+            </h4>
+            <div v-if="filteredPresent.length === 0" class="py-4 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
+              Chưa có lượt điểm danh nào.
             </div>
-
-            <!-- 2. Leave Requests List (Có hiển thị các ca vắng chia 2 cột) -->
-            <div v-if="activeListTab === 'all' || activeListTab === 'leave'" class="space-y-2">
-              <h4 class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center justify-between">
-                <span class="flex items-center gap-1.5">
-                  <i class="fa-solid fa-envelope-open-text text-amber-500"></i> Danh sách xin nghỉ
-                </span>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
-                  <span v-if="detailListSearchQuery" class="text-indigo-600 dark:text-indigo-400 font-black">{{ filteredLeaveList.length }} / </span>
-                  {{ stats?.leaveList?.length || 0 }}
-                </span>
-              </h4>
-
-              <div v-if="!filteredLeaveList.length" class="text-center py-6 text-xs text-slate-400 font-medium italic bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                {{ detailListSearchQuery ? 'Không tìm thấy đơn xin nghỉ khớp từ khóa.' : 'Chưa có thành viên nào gửi đơn xin nghỉ.' }}
-              </div>
-
-              <div v-else class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
-                <div v-for="item in filteredLeaveList" :key="item.id" class="p-2.5 sm:p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 space-y-1.5">
-                  <!-- Row 1: Member Info + Status Badge -->
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                      <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-700 font-black text-xs flex items-center justify-center shrink-0">
-                        {{ item.memberName ? item.memberName.charAt(0).toUpperCase() : 'U' }}
-                      </div>
-                      <div class="min-w-0">
-                        <div class="text-xs font-bold text-slate-800 dark:text-white truncate">{{ item.memberName }}</div>
-                        <div class="text-[11px] text-slate-400 font-medium">MSSV: {{ item.memberId }}</div>
-                      </div>
-                    </div>
-                    <div class="text-right shrink-0">
-                      <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 flex items-center gap-1">
-                        <i class="fa-solid fa-clock"></i> Vắng có lý do
-                      </span>
-                      <div class="text-[10px] text-slate-400 mt-0.5">{{ formatTime(item.timestamp) }}</div>
-                    </div>
-                  </div>
-
-                  <div v-if="item.leaveReason" class="text-xs bg-amber-50/70 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 p-2 rounded-xl border border-amber-200/50">
-                    <span class="font-bold">Lý do:</span> {{ item.leaveReason }}
-                  </div>
-
-                  <!-- Những ca vắng của thành viên chia làm 2 cột -->
-                  <div v-if="getMemberAbsentShifts(item).length > 0" class="pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                    <div class="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 mb-1 flex items-center justify-between">
-                      <span class="flex items-center gap-1">
-                        <i class="fa-solid fa-calendar-xmark text-amber-500"></i> Ca vắng / xin nghỉ ({{ getMemberAbsentShifts(item).length }} ca):
-                      </span>
-                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300">
-                        2 Cột
-                      </span>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-1.5 sm:gap-2">
-                      <div v-for="(shift, sIdx) in getMemberAbsentShifts(item)" :key="sIdx"
-                           class="p-2 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 flex items-center justify-between gap-1 shadow-2xs">
-                        <div class="min-w-0 flex-1">
-                          <div class="font-black text-amber-950 dark:text-amber-200 text-xs flex items-center gap-1 truncate">
-                            <i class="fa-solid fa-clock text-amber-600 text-[10px] shrink-0"></i>
-                            <span class="truncate">{{ shift.shiftType }}</span>
-                          </div>
-                          <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-semibold flex items-center gap-1">
-                            <i class="fa-solid fa-calendar-day text-[9px] text-amber-500 shrink-0"></i>
-                            <span class="truncate">{{ shift.formattedDate || (formatDate ? formatDate(shift.date) : shift.date) }}</span>
-                          </div>
-                        </div>
-                        <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 shrink-0">
-                          Vắng
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 3. Registered Shifts List -->
-            <div v-if="activeListTab === 'all' || activeListTab === 'regs'" class="space-y-2">
-              <h4 class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center justify-between">
-                <span class="flex items-center gap-1.5">
-                  <i class="fa-solid fa-clipboard-check text-sky-500"></i> Danh sách thành viên đăng ký theo Ngày/Ca
-                </span>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
-                  <span v-if="detailListSearchQuery" class="text-indigo-600 dark:text-indigo-400 font-black">{{ filteredRegsList.length }} / </span>
-                  {{ stats?.regsList?.length || 0 }}
-                </span>
-              </h4>
-
-              <div v-if="!filteredRegsList.length" class="text-center py-6 text-xs text-slate-400 font-medium italic bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                {{ detailListSearchQuery ? 'Không tìm thấy lượt đăng ký khớp từ khóa.' : 'Chưa có lượt đăng ký ca nào cho hoạt động này.' }}
-              </div>
-
-              <div v-else class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
-                <div v-for="item in filteredRegsList" :key="item.id" class="p-2.5 sm:p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 space-y-1.5">
-                  <!-- Row 1: Member Info + Status Badge -->
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                      <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 font-black text-xs flex items-center justify-center shrink-0">
-                        {{ item.memberName ? item.memberName.charAt(0).toUpperCase() : 'U' }}
-                      </div>
-                      <div class="min-w-0">
-                        <div class="text-xs font-bold text-slate-800 dark:text-white truncate">
-                          {{ item.memberName }}
-                        </div>
-                        <div class="text-[11px] text-slate-400 font-medium">MSSV: {{ item.memberId }}</div>
-                      </div>
-                    </div>
-
-                    <!-- Status Badge -->
-                    <div class="shrink-0">
-                      <span v-if="isShiftCheckedIn(item)" class="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex items-center gap-1">
-                        <i class="fa-solid fa-check"></i> Có Mặt
-                      </span>
-                      <span v-else-if="isMemberShiftAbsent(item.memberId, item)" class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 flex items-center gap-1">
-                        <i class="fa-solid fa-clock"></i> Xin Nghỉ
-                      </span>
-                      <span v-else class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                        Chưa điểm danh
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Row 2: Shift Date & Shift Type & Action Button -->
-                  <div class="flex flex-wrap items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/60">
-                    <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-                      <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
-                        🗓️ {{ formatDate(item.date) }} • {{ item.shiftType }}
-                      </span>
-                      <span v-if="item.notes" class="text-[10px] text-slate-400 italic truncate max-w-[140px] sm:max-w-xs">
-                        "{{ item.notes }}"
-                      </span>
-                    </div>
-
-                    <!-- Quick Check-in button if not checked in -->
-                    <button v-if="!isShiftCheckedIn(item)"
-                            type="button"
-                            @click="quickCheckInShift(item)"
-                            class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-extrabold transition shadow-2xs cursor-pointer flex items-center gap-1 shrink-0 ml-auto"
-                            title="Điểm danh hộ ngay cho ca này">
-                      <i class="fa-solid fa-bolt"></i> Điểm danh hộ
+            <div v-else class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg">
+              <div v-for="item in filteredPresent" :key="item.id" class="p-3 flex items-center justify-between gap-3 text-xs">
+                <div class="min-w-0">
+                  <div class="font-semibold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
+                    <span>{{ item.memberName || data.getMemberName(item.memberId) }}</span>
+                    <span class="font-mono text-slate-500">{{ item.memberId }}</span>
+                    <button
+                      v-if="item.hasProof || item.proofImage"
+                      type="button"
+                      @click="openProof(item)"
+                      class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer"
+                    >
+                      <Image class="w-3.5 h-3.5" />
+                      <span>Xem minh chứng</span>
                     </button>
                   </div>
+                  <div class="text-[11px] text-slate-500 tabular-nums mt-0.5">
+                    {{ formatDateTime(item.timestamp) }}
+                    <span v-if="item.shiftType"> · {{ item.shiftType }}</span>
+                  </div>
                 </div>
+                <span class="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px] shrink-0">
+                  {{ item.adminCheckedIn ? 'Admin điểm danh' : 'Có mặt' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Leave List -->
+          <div v-if="activeTab === 'all' || activeTab === 'leave'" class="space-y-1.5">
+            <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+              Xin nghỉ ({{ filteredLeaves.length }})
+            </h4>
+            <div v-if="filteredLeaves.length === 0" class="py-4 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
+              Không có lượt xin nghỉ.
+            </div>
+            <div v-else class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg">
+              <div v-for="item in filteredLeaves" :key="item.id" class="p-3 space-y-1 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <span class="font-semibold text-slate-900 dark:text-white">{{ item.memberName || data.getMemberName(item.memberId) }}</span>
+                    <span class="font-mono text-slate-500 ml-1.5">{{ item.memberId }}</span>
+                  </div>
+                  <span class="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-semibold text-[11px]">
+                    Vắng có lý do
+                  </span>
+                </div>
+                <p v-if="item.leaveReason" class="text-slate-600 dark:text-slate-400">Lý do: {{ item.leaveReason }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Registrations List -->
+          <div v-if="activeTab === 'all' || activeTab === 'regs'" class="space-y-1.5">
+            <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+              Đã đăng ký ca ({{ filteredRegs.length }})
+            </h4>
+            <div v-if="filteredRegs.length === 0" class="py-4 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
+              Chưa có lượt đăng ký ca.
+            </div>
+            <div v-else class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg">
+              <div v-for="item in filteredRegs" :key="item.id" class="p-3 flex items-center justify-between gap-2 text-xs">
+                <div>
+                  <div class="font-semibold text-slate-900 dark:text-white">
+                    {{ item.memberName || data.getMemberName(item.memberId) }}
+                    <span class="font-mono text-slate-500 font-normal ml-1">{{ item.memberId }}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-500 tabular-nums mt-0.5">
+                    {{ formatDate(item.date) }} · {{ item.shiftType }}
+                    <span v-if="item.notes"> · {{ item.notes }}</span>
+                  </div>
+                </div>
+                <button
+                  v-if="!isRegCheckedIn(item)"
+                  type="button"
+                  @click="quickCheckIn(item)"
+                  class="px-2.5 py-1 rounded-md bg-brand-600 hover:bg-brand-700 text-white font-semibold text-[11px] cursor-pointer shrink-0"
+                >
+                  Điểm danh hộ
+                </button>
+                <span v-else class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 shrink-0">
+                  Có mặt
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Footer (Fixed bottom) -->
-        <div class="p-4 sm:p-5 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0 flex items-center justify-between gap-2 bg-white dark:bg-slate-900">
-          <button @click="$emit('export-excel', activity)" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold rounded-xl text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-            <i class="fa-solid fa-file-excel"></i> Xuất Excel (DSSV)
+        <!-- Footer -->
+        <div class="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0 text-xs">
+          <button
+            type="button"
+            @click="exportExcel"
+            class="px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold flex items-center gap-1.5 cursor-pointer"
+          >
+            <FileSpreadsheet class="w-3.5 h-3.5" />
+            <span>Xuất Excel (DSSV)</span>
           </button>
-
-          <button @click="$emit('close')" class="px-5 py-2 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer">
-            Đóng lại
+          <button
+            type="button"
+            @click="$emit('close')"
+            class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+          >
+            Đóng
           </button>
         </div>
       </div>
 
-      <!-- Photo Preview Lightbox Modal -->
-      <div v-if="previewPhotoModal.show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
-        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 max-w-lg w-full shadow-2xl space-y-4">
+      <!-- Lazy Proof Photo Lightbox -->
+      <div
+        v-if="proofModal.show"
+        class="fixed inset-0 z-[60] bg-slate-950/80 flex items-center justify-center p-4"
+        @click.self="proofModal.show = false"
+      >
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 shadow-2xl space-y-4">
           <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-            <div class="flex items-center gap-2">
-              <i class="fa-solid fa-id-card text-indigo-600 text-lg"></i>
-              <div>
-                <h4 class="font-extrabold text-slate-900 dark:text-white text-sm">Ảnh Minh Chứng Thẻ SV</h4>
-                <p class="text-xs text-slate-500 font-bold">{{ previewPhotoModal.item?.memberName }} ({{ previewPhotoModal.item?.memberId }})</p>
-              </div>
+            <div>
+              <h4 class="text-sm font-bold text-slate-900 dark:text-white">Ảnh minh chứng thẻ sinh viên</h4>
+              <p class="text-xs text-slate-500">
+                {{ proofModal.item?.memberName }} ({{ proofModal.item?.memberId }})
+              </p>
             </div>
-            <button @click="previewPhotoModal.show = false" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-              <i class="fa-solid fa-xmark text-lg"></i>
+            <button type="button" @click="proofModal.show = false" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <X class="w-4 h-4" />
             </button>
           </div>
 
-          <div class="rounded-2xl overflow-hidden bg-black flex items-center justify-center border border-slate-200 dark:border-slate-800 p-2">
-            <img :src="previewPhotoModal.item?.proofImage" class="max-h-[60vh] object-contain rounded-xl shadow-lg">
+          <div class="rounded-lg bg-slate-950 border border-slate-200 dark:border-slate-800 min-h-[200px] flex items-center justify-center p-2">
+            <Loader2 v-if="proofModal.loading" class="w-6 h-6 text-white animate-spin" />
+            <img v-else-if="proofModal.imageUrl" :src="proofModal.imageUrl" alt="Ảnh minh chứng" class="max-h-[60vh] object-contain rounded" />
+            <p v-else class="text-xs text-slate-400">Không tìm thấy dữ liệu ảnh trên máy chủ.</p>
           </div>
 
-          <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-mono space-y-1">
-            <div class="text-slate-600 dark:text-slate-400">
-              🏷️ <span class="font-bold text-slate-900 dark:text-white">Tên file chuẩn:</span>
-              <span class="text-emerald-600 dark:text-emerald-400 font-bold ml-1">{{ getFormattedFileName(previewPhotoModal.item) }}</span>
-            </div>
-            <div class="text-slate-600 dark:text-slate-400">
-              📁 <span class="font-bold text-slate-900 dark:text-white">Folder ngày:</span>
-              <span class="text-indigo-600 dark:text-indigo-400 font-bold ml-1">{{ getFolderDateStr(activity?.date) }}</span>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-end gap-2 pt-2">
-            <a :href="googleDriveFolderUrl" target="_blank" rel="noopener noreferrer"
-               class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs">
-              <i class="fa-brands fa-google-drive"></i> Mở Thư Mục Drive
+          <div class="flex items-center justify-end gap-2 text-xs">
+            <a
+              :href="GOOGLE_DRIVE_FOLDER_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold"
+            >
+              Mở Google Drive
             </a>
-            <button type="button" @click="downloadProofImage(previewPhotoModal.item)"
-                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-extrabold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer border border-slate-700">
-              <i class="fa-solid fa-download"></i> Tải Về Máy
-            </button>
-            <button type="button" @click="previewPhotoModal.show = false"
-                    class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs cursor-pointer">
-              Đóng
+            <button
+              v-if="proofModal.imageUrl"
+              type="button"
+              @click="downloadProof"
+              class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold cursor-pointer"
+            >
+              Tải ảnh về
             </button>
           </div>
         </div>
@@ -555,340 +337,141 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { X, Image, FileSpreadsheet, Loader2 } from 'lucide-vue-next';
+import { useDataStore, GOOGLE_DRIVE_FOLDER_URL } from '../../stores/data.js';
+import { useUiStore } from '../../stores/ui.js';
+import { formatDate, formatDateTime } from '../../utils/date.js';
 import { downloadBase64File } from '../../utils/fileExport.js';
+import { exportActivityCheckInExcel } from '../../utils/exporters.js';
 
 const props = defineProps({
   show: Boolean,
-  activity: Object,
-  stats: Object,
-  members: Array,
-  leaveRequests: {
-    type: Array,
-    default: () => []
-  },
-  activityRegistrations: {
-    type: Array,
-    default: () => []
-  },
-  formatDate: Function
+  activity: { type: Object, default: null }
 });
+defineEmits(['close']);
 
-const emit = defineEmits(['close', 'admin-checkin', 'export-excel']);
+const data = useDataStore();
+const ui = useUiStore();
 
-const googleDriveFolderUrl = 'https://drive.google.com/drive/folders/1zbUHwDzxXVfYK_kTIdQvVZXYJ2sVMBsd';
-
-const activeListTab = ref('all');
-const isCheckInFormOpen = ref(true);
-
-// Helper to get all absent shifts for a member who has leave request / marked absent
-const getMemberAbsentShifts = (item) => {
-  if (!item) return [];
-  const mId = String(item.memberId || '').trim().toUpperCase();
-  const actId = props.activity?.id;
-
-  // 1. Direct leaveShifts on the check-in record
-  if (Array.isArray(item.leaveShifts) && item.leaveShifts.length > 0) {
-    return item.leaveShifts;
-  }
-
-  // 2. Direct shiftType and shiftDate on item
-  if (item.shiftType && item.shiftType !== 'leave') {
-    return [{
-      shiftType: item.shiftType,
-      date: item.shiftDate || props.activity?.date,
-      formattedDate: props.formatDate ? props.formatDate(item.shiftDate || props.activity?.date) : ''
-    }];
-  }
-
-  // 3. Search in props.leaveRequests
-  const lr = (props.leaveRequests || []).find(l => {
-    const isActMatch = (actId && l.activityId === actId) || (props.activity?.name && l.activityName === props.activity?.name);
-    const isMemMatch = String(l.memberId || '').trim().toUpperCase() === mId;
-    return isActMatch && isMemMatch;
-  });
-
-  if (lr) {
-    if (Array.isArray(lr.selectedShifts) && lr.selectedShifts.length > 0) {
-      return lr.selectedShifts;
-    }
-    if (lr.shiftType) {
-      const match = lr.shiftType.match(/\((.*?)\)/);
-      const content = match ? match[1] : lr.shiftType;
-      const parts = content.split(/,\s*/);
-      const parsed = [];
-      for (const p of parts) {
-        const cleaned = p.trim();
-        if (cleaned && !cleaned.toLowerCase().startsWith('hoạt động:')) {
-          const dateMatch = cleaned.match(/ngày\s+(\d{1,2}\/\d{1,2}\/\d{4})/i) || cleaned.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
-          const shiftName = cleaned.replace(/ngày\s+\d{1,2}\/\d{1,2}\/\d{4}/i, '').replace(/\(\d{1,2}\/\d{1,2}\/\d{4}\)/, '').trim();
-          parsed.push({
-            shiftType: shiftName || cleaned,
-            date: lr.shiftDate || props.activity?.date,
-            formattedDate: dateMatch ? dateMatch[1] : (props.formatDate ? props.formatDate(lr.shiftDate || props.activity?.date) : '')
-          });
-        }
-      }
-      if (parsed.length > 0) return parsed;
-    }
-  }
-
-  // 4. Check if member has registrations in activityRegistrations / stats.regsList
-  const allRegs = (props.activityRegistrations && props.activityRegistrations.length > 0)
-    ? props.activityRegistrations
-    : (props.stats?.regsList || []);
-  const regs = allRegs.filter(
-    r => (actId && r.activityId === actId) && String(r.memberId || '').trim().toUpperCase() === mId
-  );
-  if (regs.length > 0) {
-    return regs.map(r => ({
-      id: r.id,
-      shiftType: r.shiftType,
-      date: r.date,
-      notes: r.notes,
-      formattedDate: props.formatDate ? props.formatDate(r.date) : r.date
-    }));
-  }
-
-  // 5. Fallback: Toàn bộ hoạt động
-  return [{
-    shiftType: 'Toàn bộ ca hoạt động',
-    date: props.activity?.date,
-    formattedDate: props.formatDate ? props.formatDate(props.activity?.date) : props.activity?.date
-  }];
-};
-
-// Check if member has any leave
-const isMemberAnyLeave = (memberId) => {
-  if (!props.stats?.leaveList || !memberId) return false;
-  const mId = String(memberId).trim().toUpperCase();
-  return props.stats.leaveList.some(l => String(l.memberId).trim().toUpperCase() === mId);
-};
-
-// Check if a specific shift of a member was requested leave for
-const isMemberShiftAbsent = (memberId, shift) => {
-  if (!memberId || !shift) return false;
-  const mId = String(memberId).trim().toUpperCase();
-  const leaveItem = (props.stats?.leaveList || []).find(l => String(l.memberId).trim().toUpperCase() === mId);
-  if (!leaveItem) return false;
-  const absentShifts = getMemberAbsentShifts(leaveItem);
-  return absentShifts.some(as => {
-    if (as.id && shift.id && as.id === shift.id) return true;
-    if (as.shiftType && shift.shiftType && as.shiftType.trim().toLowerCase() === shift.shiftType.trim().toLowerCase()) return true;
-    return false;
-  });
-};
-
-// Search & Member Selection State for Admin Check-in
-const memberSearchQuery = ref('');
-const selectedAdminMember = ref(null);
+const activeTab = ref('all');
+const isFormOpen = ref(false);
+const onlyRegistered = ref(true);
+const memberQuery = ref('');
+const selectedMember = ref(null);
 const selectedShift = ref(null);
-const filterOnlyRegistered = ref(true);
+const listQuery = ref('');
 
-const uniqueRegisteredMembersCount = computed(() => {
-  if (!props.stats?.regsList) return 0;
-  const set = new Set(props.stats.regsList.map(r => String(r.memberId).trim().toUpperCase()));
-  return set.size;
+const proofModal = ref({ show: false, loading: false, item: null, imageUrl: '' });
+
+const stats = computed(() =>
+  props.activity ? data.getActivityStats(props.activity.id) : { totalCheckIns: 0, totalLeaves: 0, totalRegistrations: 0, presentList: [], leaveList: [], regsList: [], allRecords: [] }
+);
+
+const listTabs = computed(() => [
+  { id: 'all', label: 'Tất cả' },
+  { id: 'present', label: `Có mặt (${stats.value.presentList.length})` },
+  { id: 'leave', label: `Xin nghỉ (${stats.value.leaveList.length})` },
+  { id: 'regs', label: `Đăng ký (${stats.value.regsList.length})` }
+]);
+
+const candidates = computed(() => {
+  let pool = data.members;
+  if (onlyRegistered.value) {
+    const regIds = new Set(stats.value.regsList.map((r) => r.memberId));
+    pool = pool.filter((m) => regIds.has(m.id));
+  }
+  const q = memberQuery.value.trim().toLowerCase();
+  if (!q) return pool.slice(0, 15);
+  return pool.filter((m) => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q)).slice(0, 20);
 });
 
-const getMemberRegisteredShifts = (memberId) => {
-  if (!props.stats?.regsList || !memberId) return [];
-  const mId = String(memberId).trim().toUpperCase();
-  return props.stats.regsList.filter(r => String(r.memberId).trim().toUpperCase() === mId);
-};
-
-const getMemberRegisteredShiftsCount = (memberId) => {
-  return getMemberRegisteredShifts(memberId).length;
-};
-
-const isMemberAnyCheckedIn = (memberId) => {
-  if (!props.stats?.presentList || !memberId) return false;
-  const mId = String(memberId).trim().toUpperCase();
-  return props.stats.presentList.some(p => String(p.memberId).trim().toUpperCase() === mId);
-};
-
-const candidateMembers = computed(() => {
-  let pool = props.members || [];
-  if (filterOnlyRegistered.value) {
-    const regIds = new Set((props.stats?.regsList || []).map(r => String(r.memberId).trim().toUpperCase()));
-    pool = pool.filter(m => regIds.has(String(m.id).trim().toUpperCase()));
-  }
-
-  const q = memberSearchQuery.value.trim().toLowerCase();
-  if (!q) {
-    return pool.slice(0, 15);
-  }
-
-  return pool.filter(m => {
-    const name = (m.name || '').toLowerCase();
-    const id = String(m.id || '').toLowerCase();
-    const dept = (m.department || '').toLowerCase();
-    return name.includes(q) || id.includes(q) || dept.includes(q);
-  }).slice(0, 20);
+const memberShifts = computed(() => {
+  if (!selectedMember.value) return [];
+  return stats.value.regsList.filter((r) => r.memberId === selectedMember.value.id);
 });
 
-const selectAdminMember = (m) => {
-  selectedAdminMember.value = m;
-  const shifts = getMemberRegisteredShifts(m.id);
-  if (shifts.length > 0) {
-    selectedShift.value = shifts[0];
-  } else {
-    selectedShift.value = null;
-  }
-};
+function selectMember(m) {
+  selectedMember.value = m;
+  selectedShift.value = memberShifts.value[0] || null;
+}
 
-const memberRegisteredShifts = computed(() => {
-  if (!selectedAdminMember.value) return [];
-  return getMemberRegisteredShifts(selectedAdminMember.value.id);
-});
-
-const handleAdminCheckIn = () => {
-  if (!selectedAdminMember.value || !props.activity) return;
-  emit('admin-checkin', {
+async function confirmAdminCheckIn() {
+  if (!selectedMember.value || !props.activity) return;
+  await data.checkInActivity({
     activityId: props.activity.id,
-    memberId: selectedAdminMember.value.id,
-    shiftInfo: selectedShift.value ? {
-      shiftType: selectedShift.value.shiftType,
-      date: selectedShift.value.date
-    } : null
+    targetMemberId: selectedMember.value.id,
+    shiftInfo: selectedShift.value ? { shiftType: selectedShift.value.shiftType, date: selectedShift.value.date } : null
   });
-  selectedAdminMember.value = null;
+  selectedMember.value = null;
   selectedShift.value = null;
-  memberSearchQuery.value = '';
-};
+  memberQuery.value = '';
+}
 
-const quickCheckInShift = (item) => {
-  if (!item || !props.activity) return;
-  emit('admin-checkin', {
+async function quickCheckIn(item) {
+  if (!props.activity) return;
+  await data.checkInActivity({
     activityId: props.activity.id,
-    memberId: item.memberId,
-    shiftInfo: {
-      shiftType: item.shiftType,
-      date: item.date
-    }
+    targetMemberId: item.memberId,
+    shiftInfo: { shiftType: item.shiftType, date: item.date }
   });
+}
+
+function isRegCheckedIn(reg) {
+  return stats.value.presentList.some(
+    (p) => p.memberId === reg.memberId && (!p.shiftType || p.shiftType === reg.shiftType)
+  );
+}
+
+const matchQuery = (item) => {
+  const q = listQuery.value.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    (item.memberName || data.getMemberName(item.memberId)).toLowerCase().includes(q) ||
+    item.memberId.toLowerCase().includes(q) ||
+    (item.shiftType || '').toLowerCase().includes(q) ||
+    (item.leaveReason || '').toLowerCase().includes(q)
+  );
 };
 
-const isShiftCheckedIn = (item) => {
-  if (!props.stats?.presentList || !item) return false;
-  const mId = String(item.memberId).trim().toUpperCase();
-  return props.stats.presentList.some(p => {
-    const isSameMember = String(p.memberId).trim().toUpperCase() === mId;
-    if (!isSameMember) return false;
-    if (p.shiftType && item.shiftType) {
-      return p.shiftType === item.shiftType;
-    }
-    return true;
+const filteredPresent = computed(() => stats.value.presentList.filter(matchQuery));
+const filteredLeaves = computed(() => stats.value.leaveList.filter(matchQuery));
+const filteredRegs = computed(() => stats.value.regsList.filter(matchQuery));
+
+async function openProof(item) {
+  proofModal.value = { show: true, loading: true, item, imageUrl: '' };
+  const img = await data.fetchProofImage(item);
+  proofModal.value.imageUrl = img;
+  proofModal.value.loading = false;
+}
+
+async function downloadProof() {
+  if (!proofModal.value.imageUrl) return;
+  const item = proofModal.value.item;
+  const datePart = (props.activity?.date || '').split('-').reverse().join('_');
+  const fileName = item?.proofFileName || `${item?.memberName || 'ThanhVien'} - ${item?.memberId || 'MSSV'} - ${datePart}.jpg`;
+  await downloadBase64File(proofModal.value.imageUrl, fileName, ui.showToast);
+}
+
+async function exportExcel() {
+  if (!props.activity) return;
+  await exportActivityCheckInExcel({
+    activity: props.activity,
+    derived: data.computeActivityDerivedFields(props.activity),
+    checkIns: stats.value.allRecords,
+    registrations: stats.value.regsList,
+    getMemberName: data.getMemberName,
+    getMemberDept: data.getMemberDept,
+    notify: ui.showToast
   });
-};
+}
 
-const detailListSearchQuery = ref('');
-
-const filteredPresentList = computed(() => {
-  const list = props.stats?.presentList || [];
-  const q = detailListSearchQuery.value.trim().toLowerCase();
-  if (!q) return list;
-  return list.filter(item => {
-    const name = (item.memberName || '').toLowerCase();
-    const id = String(item.memberId || '').toLowerCase();
-    const shift = (item.shiftType || '').toLowerCase();
-    return name.includes(q) || id.includes(q) || shift.includes(q);
-  });
-});
-
-const filteredLeaveList = computed(() => {
-  const list = props.stats?.leaveList || [];
-  const q = detailListSearchQuery.value.trim().toLowerCase();
-  if (!q) return list;
-  return list.filter(item => {
-    const name = (item.memberName || '').toLowerCase();
-    const id = String(item.memberId || '').toLowerCase();
-    const reason = (item.leaveReason || '').toLowerCase();
-    return name.includes(q) || id.includes(q) || reason.includes(q);
-  });
-});
-
-const filteredRegsList = computed(() => {
-  const list = props.stats?.regsList || [];
-  const q = detailListSearchQuery.value.trim().toLowerCase();
-  if (!q) return list;
-  return list.filter(item => {
-    const name = (item.memberName || '').toLowerCase();
-    const id = String(item.memberId || '').toLowerCase();
-    const shift = (item.shiftType || '').toLowerCase();
-    const notes = (item.notes || '').toLowerCase();
-    return name.includes(q) || id.includes(q) || shift.includes(q) || notes.includes(q);
-  });
-});
-
-watch(() => props.show, (newVal) => {
-  if (!newVal) {
-    selectedAdminMember.value = null;
+watch(() => props.show, (open) => {
+  if (!open) {
+    selectedMember.value = null;
     selectedShift.value = null;
-    memberSearchQuery.value = '';
-    detailListSearchQuery.value = '';
-    isCheckInFormOpen.value = true;
+    memberQuery.value = '';
+    listQuery.value = '';
+    proofModal.value.show = false;
   }
 });
-
-const previewPhotoModal = ref({
-  show: false,
-  item: null
-});
-
-const getFolderDateStr = (dateStr) => {
-  let datePrefix = '';
-  const dStr = dateStr || props.activity?.date;
-  if (dStr && dStr.includes('-')) {
-    const parts = dStr.split('-');
-    datePrefix = `${parts[2]}_${parts[1]}_${parts[0]}`;
-  } else {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    datePrefix = `${dd}_${mm}_${yyyy}`;
-  }
-  const actName = props.activity?.name ? ` _ ${props.activity.name}` : '';
-  return `${datePrefix}${actName}`;
-};
-
-const getOnlyDateStr = (dateStr) => {
-  const dStr = dateStr || props.activity?.date;
-  if (dStr && dStr.includes('-')) {
-    const parts = dStr.split('-');
-    return `${parts[2]}_${parts[1]}_${parts[0]}`;
-  }
-  const d = new Date();
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}_${mm}_${yyyy}`;
-};
-
-const getFormattedFileName = (item) => {
-  if (!item) return 'photo.jpg';
-  const name = item.memberName || 'Thành viên';
-  const mssv = item.memberId || 'MSSV';
-  const dateStr = getOnlyDateStr(props.activity?.date);
-  return `${name} - ${mssv} - ${dateStr}.jpg`;
-};
-
-const openPhotoPreview = (item) => {
-  if (!item || !item.proofImage) return;
-  previewPhotoModal.value = {
-    show: true,
-    item
-  };
-};
-
-const downloadProofImage = async (item) => {
-  if (!item || !item.proofImage) return;
-  const fileName = getFormattedFileName(item);
-  await downloadBase64File(item.proofImage, fileName);
-};
-
-const formatTime = (ts) => {
-  if (!ts) return '';
-  return new Date(ts).toLocaleString('vi-VN');
-};
 </script>

@@ -1,10 +1,8 @@
 import { createApp } from 'vue';
-import * as XLSX from 'xlsx';
+import { createPinia } from 'pinia';
 import App from './App.vue';
 import './style.css';
 
-if (typeof window !== 'undefined' && !window.XLSX) {
-    window.XLSX = XLSX;
-}
-
-createApp(App).mount('#app');
+const app = createApp(App);
+app.use(createPinia());
+app.mount('#app');

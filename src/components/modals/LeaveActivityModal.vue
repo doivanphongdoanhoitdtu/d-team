@@ -1,102 +1,87 @@
 <template>
-  <Transition name="modal-fade">
-    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-5 sm:p-6 border border-slate-100 dark:border-slate-800 transition-all transform scale-100 space-y-4">
-        <!-- Header -->
+  <Transition name="modal">
+    <div
+      v-if="show && activity"
+      class="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4"
+      @click.self="$emit('close')"
+    >
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 shadow-xl space-y-4">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <i class="fa-solid fa-file-pen text-lg"></i>
-            </div>
-            <div>
-              <h3 class="font-extrabold text-slate-800 dark:text-white text-base">Xin Nghỉ Hoạt Động</h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium truncate max-w-[220px]">{{ activity?.name }}</p>
-            </div>
+          <div class="min-w-0">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Xin nghỉ hoạt động</h3>
+            <p class="text-xs text-slate-500 truncate mt-0.5">{{ activity.name }}</p>
           </div>
-          <button @click="$emit('close')" class="text-slate-400 hover:text-slate-600 p-2 rounded-xl cursor-pointer">
-            <i class="fa-solid fa-xmark text-lg"></i>
+          <button type="button" @click="$emit('close')" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+            <X class="w-4 h-4" />
           </button>
         </div>
 
-        <!-- Body Form -->
-        <div class="space-y-4">
-          <!-- Chọn Ca Xin Nghỉ -->
+        <div class="space-y-4 text-xs">
+          <!-- Shifts Selection -->
           <div>
             <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                Chọn Ca Xin Nghỉ <span class="text-rose-500">*</span>
+              <label class="font-semibold text-slate-700 dark:text-slate-300">
+                Chọn ca xin nghỉ <span class="text-[#c8102e]">*</span>
               </label>
-              <button v-if="registeredShifts && registeredShifts.length > 1"
-                      type="button" @click="toggleSelectAll"
-                      class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
-                {{ isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả ca' }}
+              <button
+                v-if="registeredShifts.length > 1"
+                type="button"
+                @click="toggleAll"
+                class="text-[11px] font-semibold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+              >
+                {{ isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả' }}
               </button>
             </div>
 
-            <!-- Trường hợp 1: Có ca đã đăng ký cụ thể -->
-            <div v-if="registeredShifts && registeredShifts.length > 0" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-              <label v-for="r in registeredShifts" :key="r.id"
-                     class="flex items-center justify-between p-2.5 rounded-2xl border transition cursor-pointer"
-                     :class="selectedShiftIds.includes(r.id)
-                       ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-950 dark:text-amber-200 shadow-2xs'
-                       : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'">
+            <div v-if="registeredShifts.length > 0" class="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+              <label
+                v-for="r in registeredShifts"
+                :key="r.id"
+                class="flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition"
+                :class="selectedIds.includes(r.id)
+                  ? 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-slate-900 dark:text-white'
+                  : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
+              >
                 <div class="flex items-center gap-2.5">
-                  <input type="checkbox" :value="r.id" v-model="selectedShiftIds"
-                         class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer">
-                  <div>
-                    <div class="text-xs font-bold flex items-center gap-1.5">
-                      <span>🗓️ {{ formatDate ? formatDate(r.date) : r.date }}</span>
-                      <span class="text-indigo-600 dark:text-indigo-400 font-extrabold">• {{ r.shiftType }}</span>
-                    </div>
-                    <div v-if="r.notes" class="text-[10px] text-slate-400 italic">
-                      {{ r.notes }}
-                    </div>
-                  </div>
+                  <input type="checkbox" :value="r.id" v-model="selectedIds" class="rounded accent-brand-600 cursor-pointer" />
+                  <span class="font-semibold tabular-nums">{{ formatDate(r.date) }} · {{ r.shiftType }}</span>
                 </div>
-                <span v-if="selectedShiftIds.includes(r.id)" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-900 dark:bg-amber-900 dark:text-amber-200">
-                  Nghỉ ca này
-                </span>
               </label>
-
-              <p v-if="selectedShiftIds.length === 0" class="text-[11px] text-rose-500 font-semibold mt-1 flex items-center gap-1">
-                <i class="fa-solid fa-triangle-exclamation"></i> Vui lòng chọn ít nhất 1 ca để xin nghỉ phép!
-              </p>
             </div>
 
-            <!-- Trường hợp 2: Chưa đăng ký ca cụ thể -> Xin nghỉ cả hoạt động -->
-            <div v-else class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs">
-              <div class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <i class="fa-solid fa-calendar-check text-sky-500"></i> Xin nghỉ toàn bộ hoạt động:
-              </div>
-              <div class="text-slate-500 dark:text-slate-400 mt-0.5">
-                {{ activity?.name }} (Ngày {{ formatDate ? formatDate(activity?.date) : activity?.date }})
-              </div>
+            <div v-else class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+              Xin nghỉ toàn bộ hoạt động ngày <strong class="tabular-nums">{{ formatDate(activity.date) }}</strong>.
             </div>
           </div>
 
-          <!-- Lý do xin nghỉ -->
           <div>
-            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Lý do xin nghỉ <span class="text-rose-500">*</span>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Lý do xin nghỉ <span class="text-[#c8102e]">*</span>
             </label>
-            <textarea v-model="reason"
-                      rows="3"
-                      placeholder="Nhập lý do cụ thể (vd: Trùng lịch thi, việc gia đình đột xuất...)"
-                      class="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none dark:text-white font-medium"></textarea>
+            <textarea
+              v-model="reason"
+              rows="3"
+              placeholder="Nêu rõ lý do xin nghỉ..."
+              class="w-full p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+            ></textarea>
           </div>
         </div>
 
-        <!-- Footer Buttons -->
-        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <button @click="$emit('close')"
-                  class="px-4 py-2.5 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer">
-            Hủy bỏ
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+          <button
+            type="button"
+            @click="$emit('close')"
+            class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+          >
+            Hủy
           </button>
-          <button @click="handleConfirm"
-                  :disabled="!isFormValid"
-                  class="px-5 py-2.5 rounded-xl font-bold text-xs text-white transition shadow-md flex items-center gap-1.5"
-                  :class="isFormValid ? 'bg-amber-500 hover:bg-amber-600 cursor-pointer shadow-amber-500/20' : 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed'">
-            <i class="fa-solid fa-paper-plane"></i> Gửi Đơn Xin Nghỉ
+          <button
+            type="button"
+            :disabled="!canSubmit"
+            @click="handleSubmit"
+            class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold cursor-pointer disabled:opacity-50"
+          >
+            Gửi đơn xin nghỉ
           </button>
         </div>
       </div>
@@ -106,62 +91,59 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { X } from 'lucide-vue-next';
+import { useDataStore } from '../../stores/data.js';
+import { useAuthStore } from '../../stores/auth.js';
+import { formatDate } from '../../utils/date.js';
 
 const props = defineProps({
   show: Boolean,
-  activity: Object,
-  registeredShifts: {
-    type: Array,
-    default: () => []
-  },
-  formatDate: Function
+  activity: { type: Object, default: null }
 });
+const emit = defineEmits(['close']);
 
-const emit = defineEmits(['close', 'confirm']);
+const data = useDataStore();
+const auth = useAuthStore();
 
 const reason = ref('');
-const selectedShiftIds = ref([]);
+const selectedIds = ref([]);
 
-watch(() => props.show, (newVal) => {
-  if (newVal) {
+const registeredShifts = computed(() => {
+  if (!props.activity || !auth.loggedInMemberId) return [];
+  return data.activityRegistrations.filter(
+    (r) => r.activityId === props.activity.id && r.memberId === auth.loggedInMemberId
+  );
+});
+
+watch(() => props.show, (open) => {
+  if (open) {
     reason.value = '';
-    if (props.registeredShifts && props.registeredShifts.length > 0) {
-      selectedShiftIds.value = props.registeredShifts.map(r => r.id);
-    } else {
-      selectedShiftIds.value = [];
-    }
+    selectedIds.value = registeredShifts.value.map((r) => r.id);
   }
 });
 
-const isAllSelected = computed(() => {
-  if (!props.registeredShifts || props.registeredShifts.length === 0) return false;
-  return selectedShiftIds.value.length === props.registeredShifts.length;
-});
+const isAllSelected = computed(
+  () => registeredShifts.value.length > 0 && selectedIds.value.length === registeredShifts.value.length
+);
 
-const toggleSelectAll = () => {
-  if (isAllSelected.value) {
-    selectedShiftIds.value = [];
-  } else {
-    selectedShiftIds.value = (props.registeredShifts || []).map(r => r.id);
-  }
-};
+function toggleAll() {
+  selectedIds.value = isAllSelected.value ? [] : registeredShifts.value.map((r) => r.id);
+}
 
-const isFormValid = computed(() => {
+const canSubmit = computed(() => {
   if (!reason.value.trim()) return false;
-  if (props.registeredShifts && props.registeredShifts.length > 0 && selectedShiftIds.value.length === 0) {
-    return false;
-  }
+  if (registeredShifts.value.length > 0 && selectedIds.value.length === 0) return false;
   return true;
 });
 
-const handleConfirm = () => {
-  if (!isFormValid.value) return;
-  const selectedShifts = (props.registeredShifts || []).filter(r => selectedShiftIds.value.includes(r.id));
-  emit('confirm', {
+async function handleSubmit() {
+  if (!canSubmit.value || !props.activity) return;
+  const chosen = registeredShifts.value.filter((r) => selectedIds.value.includes(r.id));
+  await data.submitActivityLeave(props.activity, {
     reason: reason.value.trim(),
-    selectedShiftIds: selectedShiftIds.value,
-    selectedShifts: selectedShifts
+    selectedShiftIds: selectedIds.value,
+    selectedShifts: chosen
   });
   emit('close');
-};
+}
 </script>

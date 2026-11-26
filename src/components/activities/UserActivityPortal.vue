@@ -1,827 +1,594 @@
 <template>
-  <div class="space-y-6">
-    <!-- User Welcome Hero Banner -->
-    <div class="bg-gradient-to-r from-sky-900 via-indigo-900 to-blue-950 rounded-3xl p-6 text-white shadow-xl border border-sky-700/40 relative overflow-hidden">
-      <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+  <div class="space-y-5">
+    <!-- Personal Summary Strip -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-400/20 text-sky-300 text-xs font-black mb-2 border border-sky-400/30">
-            <i class="fa-solid fa-user-graduate"></i> Không Gian Thành Viên
-          </div>
-          <h2 ref="heroTitleRef" class="text-xl sm:text-2xl font-black text-white tracking-tight">Cổng Hoạt Động Cá Nhân</h2>
-          <p class="text-xs sm:text-sm text-sky-200 mt-1">
-            Tổng hợp hoạt động tháng {{ selectedMonthText }} • Bấm điểm danh đúng ngày hoặc gửi đơn xin nghỉ hoạt động.
+          <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            Cổng hoạt động cá nhân
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Theo dõi hoạt động tháng {{ selectedMonthLabel }}, đăng ký ca tham gia, điểm danh minh chứng hoặc gửi đơn xin nghỉ.
           </p>
         </div>
 
-        <div class="flex items-center gap-3 bg-sky-950/70 backdrop-blur-md px-4 py-3 rounded-2xl border border-sky-700/50 shadow-md">
-          <div class="w-10 h-10 rounded-xl bg-sky-500 text-white font-black text-lg flex items-center justify-center shadow-md shrink-0">
-            {{ activeMemberName ? activeMemberName.trim().slice(-1).toUpperCase() : 'T' }}
-          </div>
-          <div>
-            <div class="text-xs font-black text-white flex items-center gap-1.5">
-              <i class="fa-solid fa-user-check text-sky-400"></i>
-              <span>{{ (activeMemberName && activeMemberName !== loggedInMemberId) ? activeMemberName : `Thành Viên (${loggedInMemberId})` }}</span>
-            </div>
-            <div class="text-[11px] font-bold text-sky-300 flex items-center gap-1 mt-0.5">
-              <i class="fa-solid fa-id-card text-sky-400"></i>
-              <span>MSSV: {{ loggedInMemberId }}</span>
-            </div>
-          </div>
+        <div class="flex items-center gap-2 text-xs">
+          <label for="portal-month" class="font-semibold text-slate-600 dark:text-slate-300">Tháng:</label>
+          <input
+            id="portal-month"
+            v-model="ui.selectedMonth"
+            type="month"
+            class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-brand-600"
+          />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+          <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Hoạt động tháng</p>
+          <p class="text-xl font-bold text-slate-900 dark:text-white tabular-nums mt-0.5">{{ monthlyActivities.length }}</p>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+          <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Đã tham gia</p>
+          <p class="text-xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums mt-0.5">{{ attendedCount }}</p>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+          <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Đã xin nghỉ</p>
+          <p class="text-xl font-bold text-amber-700 dark:text-amber-400 tabular-nums mt-0.5">{{ leaveCount }}</p>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+          <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Chuyên cần</p>
+          <p class="text-xl font-bold text-brand-700 dark:text-brand-400 tabular-nums mt-0.5">{{ participationRate }}%</p>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 col-span-2 sm:col-span-1">
+          <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Ca đã đăng ký</p>
+          <p class="text-xl font-bold text-slate-900 dark:text-white tabular-nums mt-0.5">{{ totalMyRegsCount }}</p>
         </div>
       </div>
     </div>
 
-    <!-- Personal Monthly Summary Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-      <!-- Total Activities this Month -->
-      <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl shrink-0">
-          <i class="fa-solid fa-calendar-days"></i>
-        </div>
-        <div>
-          <div class="text-2xl font-black text-slate-800 dark:text-white leading-none">
-            {{ displayCounts.monthly }}
-          </div>
-          <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
-            Hoạt Động Tháng
-          </div>
-        </div>
-      </div>
-
-      <!-- Joined / Attended Activities -->
-      <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0">
-          <i class="fa-solid fa-user-check"></i>
-        </div>
-        <div>
-          <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
-            {{ displayCounts.attended }}
-          </div>
-          <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
-            Đã Tham Gia
-          </div>
-        </div>
-      </div>
-
-      <!-- Leave Requested Activities -->
-      <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl shrink-0">
-          <i class="fa-solid fa-file-signature"></i>
-        </div>
-        <div>
-          <div class="text-2xl font-black text-amber-600 dark:text-amber-400 leading-none">
-            {{ displayCounts.leave }}
-          </div>
-          <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
-            Đã Xin Nghỉ
-          </div>
-        </div>
-      </div>
-
-      <!-- Attendance Participation Rate -->
-      <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center text-xl shrink-0">
-          <i class="fa-solid fa-chart-line"></i>
-        </div>
-        <div>
-          <div class="text-2xl font-black text-sky-600 dark:text-sky-400 leading-none">
-            {{ displayCounts.rate }}%
-          </div>
-          <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
-            Tỷ Lệ Chuyên Cần
-          </div>
-        </div>
-      </div>
-
-      <!-- Total Activity Shifts Registered -->
-      <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center gap-3 col-span-2 md:col-span-1">
-        <div class="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center text-xl shrink-0">
-          <i class="fa-solid fa-flag"></i>
-        </div>
-        <div>
-          <div class="text-2xl font-black text-teal-600 dark:text-teal-400 leading-none">
-            {{ displayCounts.regs }}
-          </div>
-          <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
-            Ca Đã Đăng Ký
-          </div>
-        </div>
-      </div>
+    <!-- Activities Grid -->
+    <div
+      v-if="monthlyActivities.length === 0"
+      class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-10 text-center space-y-1.5"
+    >
+      <CalendarX2 class="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+      <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">
+        Không có hoạt động trong tháng {{ selectedMonthLabel }}
+      </p>
+      <p class="text-xs text-slate-500 dark:text-slate-400">
+        Chọn tháng khác để xem lịch sử hoặc chờ Quản trị viên cập nhật hoạt động mới.
+      </p>
     </div>
 
-    <!-- Monthly Activities List -->
-    <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-        <div>
-          <h3 class="font-extrabold text-slate-800 dark:text-white text-lg flex items-center gap-2">
-            <i class="fa-solid fa-list-check text-indigo-600"></i> Danh Sách Hoạt Động Trong Tháng
-          </h3>
-          <p class="text-xs text-slate-500 font-medium">Quy định: Chỉ được tự điểm danh đúng trong ngày diễn ra ca trực (Quên điểm danh sẽ nhờ Admin điểm danh hộ/bù).</p>
-        </div>
-
-        <!-- Month Filter Selector -->
-        <div class="flex items-center gap-2 text-xs font-bold bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <span class="text-slate-500">Tháng:</span>
-          <input type="month" :value="selectedMonth" @input="$emit('update:selectedMonth', $event.target.value)"
-                 class="bg-transparent font-bold text-slate-800 dark:text-white focus:outline-none cursor-pointer">
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div v-if="monthlyActivities.length === 0" class="py-12 text-center text-slate-400 space-y-2">
-        <i class="fa-solid fa-calendar-xmark text-4xl text-slate-300"></i>
-        <div class="font-bold text-sm">Không có hoạt động nào diễn ra trong tháng {{ selectedMonthText }}.</div>
-        <div class="text-xs">Vui lòng chọn tháng khác hoặc chờ Quản trị viên cập nhật thêm hoạt động mới.</div>
-      </div>
-
-      <!-- Activities Grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div v-for="act in monthlyActivities" :key="act.id"
-             class="activity-card bg-slate-50/70 dark:bg-slate-800/40 rounded-3xl p-5 border border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 transition flex flex-col justify-between space-y-4">
-          <!-- Top Info -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                {{ act.semester }}
-              </span>
-
-              <!-- Status Badges for Date Enforcement -->
-              <span v-if="getUserCheckInRecord(act.id)?.status === 'present'"
-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex items-center gap-1 border border-emerald-300">
-                <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                {{ getUserCheckInRecord(act.id)?.adminCheckedIn ? 'Đã Đ.Danh (Admin Hộ)' : 'Đã Điểm Danh' }}
-              </span>
-
-              <span v-else-if="getUserCheckInRecord(act.id)?.status === 'leave'"
-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 flex items-center gap-1 border border-amber-300">
-                <i class="fa-solid fa-clock"></i> Đã Xin Nghỉ
-              </span>
-
-              <span v-else-if="act.date === todayDate"
-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-white animate-pulse flex items-center gap-1">
-                <i class="fa-solid fa-bolt"></i> Sẵn Sàng Điểm Danh (Hôm Nay)
-              </span>
-
-              <span v-else-if="act.date > todayDate"
-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-300">
-                🗓️ Chưa Đến Ngày ({{ formatDate(act.date) }})
-              </span>
-
-              <span v-else
-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300">
-                ⚠️ Quá Hạn (Cần Admin điểm danh bù)
-              </span>
-            </div>
-
-            <h4 class="font-extrabold text-slate-800 dark:text-white text-base leading-snug">{{ act.name }}</h4>
-
-            <div class="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-400 font-medium">
-              <p class="flex items-center gap-1.5">
-                <i class="fa-solid fa-calendar-day text-indigo-500"></i>
-                <span class="font-bold">Ngày diễn ra:</span> {{ formatDate(act.date) }}
-                <span v-if="act.date === todayDate" class="text-emerald-600 font-black ml-1">(Hôm nay)</span>
-              </p>
-              <p class="flex items-center gap-1.5">
-                <i class="fa-solid fa-location-dot text-rose-500"></i>
-                <span class="font-bold">Địa điểm:</span> {{ act.location || 'Trường ĐH' }}
-              </p>
-            </div>
-
-            <p v-if="act.description" class="text-xs text-slate-500 italic mt-2 line-clamp-2">
-              "{{ act.description }}"
-            </p>
-
-            <!-- Registered Activity Shifts Badges -->
-            <div v-if="getUserActivityRegs(act.id).length > 0" class="mt-3 space-y-1.5 border-t border-slate-200/60 dark:border-slate-700/60 pt-2">
-              <div class="text-[11px] font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1">
-                <i class="fa-solid fa-clipboard-check"></i> Ca hoạt động đã đăng ký:
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                <span v-for="r in getUserActivityRegs(act.id)" :key="r.id"
-                      class="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300 border border-sky-300 flex items-center gap-1.5 shadow-2xs">
-                  <span>✓ {{ formatDate(r.date) }} ({{ r.shiftType }})</span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bottom Action Buttons (Check-in, Request Leave, Register Shift) -->
-          <div class="pt-3 border-t border-slate-200/60 dark:border-slate-700/60 space-y-2 text-xs">
-            <button @click="openRegModal(act)"
-                    class="w-full py-2 px-3 rounded-2xl font-bold bg-sky-600 hover:bg-sky-700 text-white transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
-              <i class="fa-solid fa-calendar-plus"></i> Đăng Ký Ca Tham Gia (Theo Ngày/Ca)
-            </button>
-
-            <div class="grid grid-cols-2 gap-2">
-              <!-- Điểm danh Button -->
-              <button @click="handleCheckInClick(act)"
-                      :disabled="getUserCheckInRecord(act.id)?.status !== 'present' && !canUserCheckInToday(act)"
-                      class="py-2 px-3 rounded-2xl font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs"
-                      :class="[
-                        getUserCheckInRecord(act.id)?.status === 'present'
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer'
-                          : (canUserCheckInToday(act)
-                              ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer active:scale-95 shadow-md'
-                              : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300/60')
-                      ]"
-                      :title="getCheckInButtonTitle(act)">
-                <i class="fa-solid" :class="getUserCheckInRecord(act.id)?.status === 'present' ? 'fa-user-check' : (canUserCheckInToday(act) ? 'fa-bolt' : 'fa-lock')"></i>
-                <span>{{ getCheckInButtonText(act) }}</span>
-              </button>
-
-              <!-- Xin nghỉ Button -->
-              <button @click="$emit('open-leave-modal', act)"
-                      class="py-2 px-3 rounded-2xl font-bold transition cursor-pointer flex items-center justify-center gap-1.5"
-                      :class="getUserCheckInRecord(act.id)?.status === 'leave' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300' : 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200'">
-                <i class="fa-solid fa-file-pen"></i>
-                <span>Xin Nghỉ</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Registration Modal for Activity Shift -->
-    <div v-if="selectedActForReg" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 max-w-md w-full shadow-2xl space-y-4">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-          <h3 class="font-extrabold text-slate-800 dark:text-white text-base flex items-center gap-2">
-            <i class="fa-solid fa-calendar-plus text-sky-600"></i> Đăng Ký Ca Hoạt Động
-          </h3>
-          <button @click="selectedActForReg = null" class="text-slate-400 hover:text-slate-600 p-1.5 cursor-pointer">
-            <i class="fa-solid fa-xmark text-lg"></i>
-          </button>
-        </div>
-
-        <div class="text-xs space-y-1">
-          <p class="font-bold text-slate-800 dark:text-white text-sm">{{ selectedActForReg.name }}</p>
-          <p class="text-slate-500">📍 {{ selectedActForReg.location || 'Trường ĐH' }}</p>
-        </div>
-
-        <form @submit.prevent="submitShiftReg" class="space-y-3 text-xs">
-          <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Chọn Ngày Tham Gia <span class="text-rose-500">*</span>
-            </label>
-            <select v-model="regModalForm.date" required class="w-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none">
-              <option v-for="d in getAvailableDates(selectedActForReg)" :key="d" :value="d">
-                🗓️ Ngày {{ formatDate(d) }} {{ d === todayDate ? '(Hôm nay)' : '' }}
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Chọn Ca Tham Gia <span class="text-rose-500">*</span>
-            </label>
-            <select v-model="regModalForm.shiftType" required class="w-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none">
-              <option value="Ca 1">Ca 1 (7h30 - 9h20)</option>
-              <option value="Ca 2">Ca 2 (9h20 - 11h30)</option>
-              <option value="Ca 3">Ca 3 (13h00 - 15h20)</option>
-              <option value="Ca 4">Ca 4 (15h20 - 17h00)</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Ghi chú (Tùy chọn)</label>
-            <input type="text" v-model="regModalForm.notes" placeholder="VD: Tham gia ca sáng hỗ trợ khâu trang trí..."
-                   class="w-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white rounded-xl p-2 font-medium focus:outline-none" />
-          </div>
-
-          <div class="pt-2 flex items-center justify-end gap-2">
-            <button type="button" @click="selectedActForReg = null" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold cursor-pointer">
-              Hủy bỏ
-            </button>
-            <button type="submit" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold cursor-pointer">
-              Xác Nhận Đăng Ký
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Modal Chụp Hình / Tải Ảnh Minh Chứng Thẻ SV & Google Drive Sync -->
-    <div v-if="showCheckInProofModal && selectedActForCheckIn" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto">
-      <div ref="proofModalRef" class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 max-w-lg w-full shadow-2xl space-y-4 my-auto">
-        <!-- Header -->
-        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-          <div class="flex items-center gap-2.5">
-            <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg font-bold shadow-md">
-              <i class="fa-solid fa-camera"></i>
-            </div>
-            <div>
-              <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Chụp Ảnh &amp; Điểm Danh Thẻ SV</h3>
-              <p class="text-xs text-slate-500 truncate max-w-xs">{{ selectedActForCheckIn.name }}</p>
-            </div>
-          </div>
-          <button @click="closeCheckInModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer">
-            <i class="fa-solid fa-xmark text-lg"></i>
-          </button>
-        </div>
-
-        <!-- Capture / Upload Modes Switcher -->
-        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-          <button type="button" @click="setCaptureMode('camera')"
-                  :class="captureMode === 'camera' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-extrabold' : 'text-slate-600 dark:text-slate-400 font-medium'"
-                  class="py-2 text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
-            <i class="fa-solid fa-camera"></i> Chụp Camera Trực Tiếp
-          </button>
-          <button type="button" @click="setCaptureMode('upload')"
-                  :class="captureMode === 'upload' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-extrabold' : 'text-slate-600 dark:text-slate-400 font-medium'"
-                  class="py-2 text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
-            <i class="fa-solid fa-upload"></i> Tải Ảnh Từ Thiết Bị
-          </button>
-        </div>
-
-        <!-- Mode 1: Live Camera Stream Capture Area -->
-        <div v-if="captureMode === 'camera' && !proofImageBase64" class="space-y-3">
-          <div class="relative rounded-2xl overflow-hidden bg-black aspect-video flex items-center justify-center border border-slate-200 dark:border-slate-800">
-            <video ref="videoElementRef" autoplay playsinline muted class="w-full h-full object-cover"></video>
-            
-            <!-- Camera Flip Button -->
-            <button type="button" @click="flipCamera" title="Đổi camera trước / sau"
-                    class="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 text-white hover:bg-black/80 flex items-center justify-center text-xs backdrop-blur-sm cursor-pointer transition">
-              <i class="fa-solid fa-camera-rotate"></i>
-            </button>
-
-            <!-- Guide overlay -->
-            <div class="absolute inset-x-8 inset-y-6 border-2 border-dashed border-white/60 rounded-2xl pointer-events-none flex items-center justify-center">
-              <span class="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">Đặt thẻ SV vào khung</span>
-            </div>
-          </div>
-
-          <button type="button" @click="capturePhotoFromCamera"
-                  class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-extrabold rounded-2xl shadow-md transition cursor-pointer flex items-center justify-center gap-2 text-xs">
-            <i class="fa-solid fa-circle-dot text-rose-400 animate-pulse text-sm"></i> 📸 BẤM CHỤP ẢNH THẺ SV NGAY
-          </button>
-        </div>
-
-        <!-- Mode 2: File Upload Area -->
-        <div v-else-if="captureMode === 'upload' && !proofImageBase64">
-          <input type="file" accept="image/*" ref="fileInputRef" @change="handleProofImageUpload" class="hidden" />
-
-          <button type="button" @click="$refs.fileInputRef.click()"
-                  class="w-full border-2 border-dashed border-indigo-300 dark:border-indigo-700 hover:border-indigo-500 bg-indigo-50/50 dark:bg-slate-800/60 rounded-2xl p-6 text-center space-y-2 cursor-pointer transition group">
-            <div class="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 mx-auto flex items-center justify-center text-2xl group-hover:scale-110 transition">
-              <i class="fa-solid fa-cloud-arrow-up"></i>
-            </div>
-            <div class="font-extrabold text-slate-800 dark:text-white text-xs">Bấm để chọn file ảnh thẻ SV từ máy</div>
-            <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Hỗ trợ định dạng JPG, PNG, WEBP</div>
-          </button>
-        </div>
-
-        <!-- Captured / Uploaded Image Preview Box -->
-        <div v-if="proofImageBase64" class="relative group rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-950 p-2.5 flex flex-col items-center space-y-2">
-          <img :src="proofImageBase64" class="max-h-56 object-contain rounded-xl shadow-md border border-slate-800">
-          
-          <div class="flex flex-wrap items-center justify-between w-full px-1 gap-2">
-            <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
-              <i class="fa-solid fa-cloud-arrow-up"></i> ☁️ Tự động lưu lên Cloud khi xác nhận
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <article
+        v-for="act in monthlyActivities"
+        :key="act.id"
+        class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col justify-between gap-4"
+      >
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold">
+              {{ act.semester || 'Hoạt động' }}
             </span>
+            <span
+              class="px-2 py-0.5 rounded border text-[11px] font-semibold"
+              :class="getStatusBadge(act).classes"
+            >
+              {{ getStatusBadge(act).label }}
+            </span>
+          </div>
+
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+            {{ act.name }}
+          </h3>
+
+          <div class="space-y-1 text-xs text-slate-600 dark:text-slate-400">
             <div class="flex items-center gap-1.5">
-              <button type="button" @click="downloadCapturedPhoto"
-                      class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-[11px] font-bold transition cursor-pointer flex items-center gap-1 border border-slate-700"
-                      title="Tải ảnh về máy nếu bạn muốn lưu một bản copy">
-                <i class="fa-solid fa-download"></i> Tải về máy
-              </button>
-              <button type="button" @click="retakePhoto"
-                      class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] font-bold transition cursor-pointer">
-                ✕ Đổi ảnh
-              </button>
+              <Calendar class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span class="tabular-nums">
+                {{ formatDate(act.date) }}
+                <template v-if="act.endDate && act.endDate !== act.date"> — {{ formatDate(act.endDate) }}</template>
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <MapPin class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span class="truncate">{{ act.location || 'Trường ĐH' }}</span>
+            </div>
+          </div>
+
+          <p v-if="act.description" class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+            {{ act.description }}
+          </p>
+
+          <!-- Registered shifts for this activity -->
+          <div v-if="getUserActivityRegs(act.id).length > 0" class="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+            <p class="text-[11px] font-semibold text-brand-700 dark:text-brand-400">Ca đã đăng ký:</p>
+            <div class="flex flex-wrap gap-1.5">
+              <span
+                v-for="r in getUserActivityRegs(act.id)"
+                :key="r.id"
+                class="px-2 py-0.5 rounded bg-brand-50 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-[11px] font-medium tabular-nums"
+              >
+                {{ formatDate(r.date) }} · {{ r.shiftType }}
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Hidden canvas for capturing -->
-        <canvas ref="canvasElementRef" class="hidden"></canvas>
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 text-xs">
+          <button
+            type="button"
+            @click="openRegModal(act)"
+            class="w-full py-2 px-3 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/30 hover:bg-brand-100 dark:hover:bg-brand-900/50 text-brand-700 dark:text-brand-300 font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+          >
+            <CalendarPlus class="w-3.5 h-3.5" />
+            <span>Đăng ký ca tham gia</span>
+          </button>
 
-        <!-- Footer Actions -->
-        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
-          <button type="button" @click="closeCheckInModal" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-xs cursor-pointer">
-            Hủy bỏ
-          </button>
-          <button type="button" @click="confirmCheckInWithProof"
-                  :disabled="!proofImageBase64"
-                  :class="[
-                    proofImageBase64
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95 shadow-md'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300/60'
-                  ]"
-                  class="px-5 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center gap-1.5 shadow-sm">
-            <i class="fa-solid fa-bolt"></i> ⚡ Xác Nhận Điểm Danh
-          </button>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              @click="openCheckInModal(act)"
+              :disabled="getRecord(act.id)?.status === 'present' || !canCheckInToday(act)"
+              class="py-2 px-2.5 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition"
+              :class="getRecord(act.id)?.status === 'present'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-default'
+                : (canCheckInToday(act)
+                    ? 'bg-brand-600 hover:bg-brand-700 text-white cursor-pointer'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed')"
+            >
+              <CheckCircle2 v-if="getRecord(act.id)?.status === 'present'" class="w-3.5 h-3.5" />
+              <Camera v-else-if="canCheckInToday(act)" class="w-3.5 h-3.5" />
+              <Lock v-else class="w-3.5 h-3.5" />
+              <span>{{ getCheckInLabel(act) }}</span>
+            </button>
+
+            <button
+              type="button"
+              @click="$emit('open-leave-modal', act)"
+              class="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+            >
+              <FilePenLine class="w-3.5 h-3.5" />
+              <span>Xin nghỉ</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </article>
     </div>
 
-    <!-- Modal Xác Nhận Hủy Đăng Ký Ca Hoạt Động -->
-    <div v-if="cancelingRegObj" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-      <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 max-w-sm w-full shadow-2xl space-y-4">
-        <div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 flex items-center justify-center text-2xl mx-auto">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-        </div>
-        <div class="text-center space-y-1">
-          <h3 class="font-extrabold text-slate-900 dark:text-white text-base">Hủy Đăng Ký Ca Này?</h3>
-          <p class="text-xs text-slate-500 leading-relaxed">
-            Bạn có chắc muốn hủy đăng ký ca <strong>{{ cancelingRegObj.shiftType }}</strong> ngày <strong>{{ formatDate(cancelingRegObj.date) }}</strong> của hoạt động "<strong>{{ cancelingActName }}</strong>"?
-          </p>
-        </div>
-        <div class="flex items-center gap-2 pt-2">
-          <button @click="cancelingRegObj = null" type="button"
-                  class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition cursor-pointer">
-            Không hủy
-          </button>
-          <button @click="executeCancelReg" type="button"
-                  class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs transition cursor-pointer shadow-md">
-            Xác Nhận Hủy
-          </button>
+    <!-- Register Activity Shift Modal -->
+    <Transition name="modal">
+      <div
+        v-if="selectedActForReg"
+        class="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4"
+        @click.self="selectedActForReg = null"
+      >
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Đăng ký ca hoạt động</h3>
+              <p class="text-xs text-slate-500 truncate max-w-xs mt-0.5">{{ selectedActForReg.name }}</p>
+            </div>
+            <button type="button" @click="selectedActForReg = null" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+
+          <form @submit.prevent="submitReg" class="space-y-3 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Ngày tham gia</label>
+              <select
+                v-model="regForm.date"
+                required
+                class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+              >
+                <option v-for="d in availableDatesForReg" :key="d" :value="d">
+                  {{ formatDate(d) }} {{ d === today ? '(Hôm nay)' : '' }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Ca tham gia</label>
+              <select
+                v-model="regForm.shiftType"
+                required
+                class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+              >
+                <option v-for="st in data.shiftTypes" :key="st.id || st.name" :value="st.name || st.id">
+                  {{ st.name }} {{ st.time ? `(${st.time})` : '' }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Ghi chú (tùy chọn)</label>
+              <input
+                v-model="regForm.notes"
+                type="text"
+                placeholder="VD: Hỗ trợ hậu cần, đón khách..."
+                class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-brand-600"
+              />
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                @click="selectedActForReg = null"
+                class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold cursor-pointer"
+              >
+                Xác nhận đăng ký
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-    </div>
+    </Transition>
+
+    <!-- Check-in Proof Camera / Upload Modal -->
+    <Transition name="modal">
+      <div
+        v-if="selectedActForCheckIn"
+        class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-y-auto"
+        @click.self="closeCheckInModal"
+      >
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 shadow-xl space-y-4 my-auto">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div class="min-w-0">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Điểm danh minh chứng thẻ sinh viên</h3>
+              <p class="text-xs text-slate-500 truncate mt-0.5">{{ selectedActForCheckIn.name }}</p>
+            </div>
+            <button type="button" @click="closeCheckInModal" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+
+          <!-- Capture Mode Switch -->
+          <div class="grid grid-cols-2 p-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold">
+            <button
+              type="button"
+              @click="setCaptureMode('camera')"
+              class="py-1.5 rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
+              :class="captureMode === 'camera' ? 'bg-white dark:bg-slate-900 text-brand-700 dark:text-brand-300 shadow-xs' : 'text-slate-600 dark:text-slate-400'"
+            >
+              <Camera class="w-3.5 h-3.5" />
+              <span>Chụp camera</span>
+            </button>
+            <button
+              type="button"
+              @click="setCaptureMode('upload')"
+              class="py-1.5 rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
+              :class="captureMode === 'upload' ? 'bg-white dark:bg-slate-900 text-brand-700 dark:text-brand-300 shadow-xs' : 'text-slate-600 dark:text-slate-400'"
+            >
+              <Upload class="w-3.5 h-3.5" />
+              <span>Tải ảnh lên</span>
+            </button>
+          </div>
+
+          <!-- Preview or Capture Area -->
+          <div v-if="proofBase64" class="space-y-2.5">
+            <div class="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-950 flex justify-center">
+              <img :src="proofBase64" alt="Ảnh minh chứng" class="max-h-64 object-contain" />
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-500 font-mono truncate">{{ standardFileName }}</span>
+              <button type="button" @click="retakePhoto" class="text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer shrink-0 ml-2">
+                Chọn lại
+              </button>
+            </div>
+          </div>
+
+          <div v-else-if="captureMode === 'camera'" class="space-y-2.5">
+            <div class="rounded-lg overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-700 aspect-[4/3] flex items-center justify-center">
+              <video ref="videoEl" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="flipCamera"
+                class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw class="w-3.5 h-3.5" />
+                <span>Đổi cam</span>
+              </button>
+              <button
+                type="button"
+                @click="capturePhoto"
+                class="flex-1 py-2 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Camera class="w-4 h-4" />
+                <span>Chụp ảnh</span>
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="space-y-2">
+            <label class="flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-brand-500 cursor-pointer text-center">
+              <Upload class="w-6 h-6 text-slate-400" />
+              <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Chọn ảnh thẻ sinh viên từ thiết bị</span>
+              <span class="text-[11px] text-slate-400">Ảnh được tự động nén gọn trước khi đồng bộ Cloud</span>
+              <input type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
+            </label>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button
+              type="button"
+              @click="closeCheckInModal"
+              class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              :disabled="!proofBase64 || isSubmittingCheckIn"
+              @click="confirmCheckIn"
+              class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ isSubmittingCheckIn ? 'Đang gửi...' : 'Xác nhận điểm danh' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount, onMounted, watch, nextTick, reactive } from 'vue';
-import { downloadBase64File } from '../../utils/fileExport.js';
-import { useAnime } from '../../composables/useAnime.js';
+import { ref, computed, onBeforeUnmount } from 'vue';
+import {
+  CalendarX2, Calendar, MapPin, CalendarPlus, CheckCircle2, Camera, Lock,
+  FilePenLine, X, Upload, RefreshCw
+} from 'lucide-vue-next';
+import { useDataStore } from '../../stores/data.js';
+import { useAuthStore } from '../../stores/auth.js';
+import { useUiStore } from '../../stores/ui.js';
+import { getTodayStr, formatDate, getDateRange } from '../../utils/date.js';
+import { compressImageFile, captureVideoFrameCompressed } from '../../utils/imageCompress.js';
 
-const { animateStagger, animateCounter, animateModalEnter, animateScramble } = useAnime();
+defineEmits(['open-leave-modal']);
 
-const heroTitleRef = ref(null);
-const proofModalRef = ref(null);
+const data = useDataStore();
+const auth = useAuthStore();
+const ui = useUiStore();
 
-const displayCounts = reactive({
-  monthly: 0,
-  attended: 0,
-  leave: 0,
-  rate: 0,
-  regs: 0
+const today = computed(() => getTodayStr());
+
+const selectedMonthLabel = computed(() => {
+  if (!ui.selectedMonth) return '';
+  const [y, m] = ui.selectedMonth.split('-');
+  return `${m}/${y}`;
 });
 
-const props = defineProps({
-  activities: Array,
-  selectedMonth: String,
-  loggedInMemberId: String,
-  activeMemberName: String,
-  activityRegistrations: {
-    type: Array,
-    default: () => []
-  },
-  getUserCheckInRecord: Function,
-  getActivityDates: Function,
-  formatDate: Function
+const monthlyActivities = computed(() => {
+  return data.activities.filter((a) => a.date && a.date.startsWith(ui.selectedMonth));
 });
 
-const emit = defineEmits(['update:selectedMonth', 'check-in', 'open-leave-modal', 'register-activity-shift', 'delete-activity-reg']);
+function getRecord(actId) {
+  return data.getUserCheckInRecord(actId, auth.loggedInMemberId);
+}
 
+function getUserActivityRegs(actId) {
+  return data.activityRegistrations.filter(
+    (r) => r.activityId === actId && r.memberId === auth.loggedInMemberId
+  );
+}
+
+const totalMyRegsCount = computed(() =>
+  data.activityRegistrations.filter((r) => r.memberId === auth.loggedInMemberId).length
+);
+
+const attendedCount = computed(() =>
+  monthlyActivities.value.filter((a) => getRecord(a.id)?.status === 'present').length
+);
+
+const leaveCount = computed(() =>
+  monthlyActivities.value.filter((a) => getRecord(a.id)?.status === 'leave').length
+);
+
+const participationRate = computed(() => {
+  if (monthlyActivities.value.length === 0) return 0;
+  return Math.round((attendedCount.value / monthlyActivities.value.length) * 100);
+});
+
+function canCheckInToday(act) {
+  const regs = getUserActivityRegs(act.id);
+  if (regs.length > 0) return regs.some((r) => r.date === today.value);
+  return getDateRange(act.date, act.endDate || act.date).includes(today.value);
+}
+
+function getStatusBadge(act) {
+  const rec = getRecord(act.id);
+  if (rec?.status === 'present') {
+    return {
+      label: rec.adminCheckedIn ? 'Đã điểm danh (Admin)' : 'Đã điểm danh',
+      classes: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+    };
+  }
+  if (rec?.status === 'leave') {
+    return {
+      label: 'Đã xin nghỉ',
+      classes: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+    };
+  }
+  if (canCheckInToday(act)) {
+    return {
+      label: 'Mở điểm danh hôm nay',
+      classes: 'bg-brand-50 text-brand-700 border-brand-200 dark:bg-brand-900/40 dark:text-brand-300 dark:border-brand-800'
+    };
+  }
+  if ((act.endDate || act.date) > today.value) {
+    return {
+      label: 'Sắp diễn ra',
+      classes: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+    };
+  }
+  return {
+    label: 'Đã kết thúc',
+    classes: 'bg-red-50 text-[#c8102e] border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800'
+  };
+}
+
+function getCheckInLabel(act) {
+  const rec = getRecord(act.id);
+  if (rec?.status === 'present') return 'Đã điểm danh';
+  if (canCheckInToday(act)) return 'Điểm danh';
+  if ((act.endDate || act.date) > today.value) return 'Chưa đến ngày';
+  return 'Quá hạn';
+}
+
+// Register shift modal
 const selectedActForReg = ref(null);
-const regModalForm = ref({ date: '', shiftType: 'Ca 1', notes: '' });
+const regForm = ref({ date: '', shiftType: 'Ca 1', notes: '' });
 
-const showCheckInProofModal = ref(false);
+const availableDatesForReg = computed(() => {
+  if (!selectedActForReg.value) return [];
+  const all = getDateRange(selectedActForReg.value.date, selectedActForReg.value.endDate || selectedActForReg.value.date);
+  const upcoming = all.filter((d) => d >= today.value);
+  return upcoming.length > 0 ? upcoming : all;
+});
+
+function openRegModal(act) {
+  selectedActForReg.value = act;
+  const dates = getDateRange(act.date, act.endDate || act.date).filter((d) => d >= today.value);
+  regForm.value = {
+    date: dates[0] || act.date,
+    shiftType: data.shiftTypes[0]?.name || 'Ca 1',
+    notes: ''
+  };
+}
+
+async function submitReg() {
+  if (!selectedActForReg.value) return;
+  await data.registerActivityShift({
+    activityId: selectedActForReg.value.id,
+    date: regForm.value.date,
+    shiftType: regForm.value.shiftType,
+    notes: regForm.value.notes
+  });
+  selectedActForReg.value = null;
+}
+
+// Check-in camera / upload modal
 const selectedActForCheckIn = ref(null);
-const proofImageBase64 = ref('');
-const captureMode = ref('camera'); // 'camera' | 'upload'
-const facingMode = ref('environment'); // 'user' | 'environment'
-
-const videoElementRef = ref(null);
-const canvasElementRef = ref(null);
+const captureMode = ref('camera');
+const proofBase64 = ref('');
+const facingMode = ref('environment');
+const videoEl = ref(null);
+const isSubmittingCheckIn = ref(false);
 let mediaStream = null;
 
-const googleDriveFolderUrl = 'https://drive.google.com/drive/folders/1zbUHwDzxXVfYK_kTIdQvVZXYJ2sVMBsd';
-
-const formatActivityFolderName = (act) => {
-  const dateStr = act?.date;
-  let datePrefix = '';
-  if (dateStr && dateStr.includes('-')) {
-    const parts = dateStr.split('-');
-    datePrefix = `${parts[2]}_${parts[1]}_${parts[0]}`;
-  } else {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    datePrefix = `${dd}_${mm}_${yyyy}`;
-  }
-  const actName = act?.name ? ` _ ${act.name}` : '';
-  return `${datePrefix}${actName}`;
-};
-
-const currentProofFolderDate = computed(() => {
-  return formatActivityFolderName(selectedActForCheckIn.value);
+const standardFileName = computed(() => {
+  const name = data.getMemberName(auth.loggedInMemberId) || 'ThanhVien';
+  const datePart = (selectedActForCheckIn.value?.date || today.value).split('-').reverse().join('_');
+  return `${name} - ${auth.loggedInMemberId} - ${datePart}.jpg`;
 });
 
-const currentStandardFileName = computed(() => {
-  const name = props.activeMemberName || 'Thành viên';
-  const mssv = props.loggedInMemberId || 'MSSV';
+const proofFolderDate = computed(() => {
   const act = selectedActForCheckIn.value;
-  let dateStr = '';
-  if (act?.date && act.date.includes('-')) {
-    const parts = act.date.split('-');
-    dateStr = `${parts[2]}_${parts[1]}_${parts[0]}`;
-  } else {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    dateStr = `${dd}_${mm}_${yyyy}`;
-  }
-  return `${name} - ${mssv} - ${dateStr}.jpg`;
+  const datePart = (act?.date || today.value).split('-').reverse().join('_');
+  return act?.name ? `${datePart} _ ${act.name}` : datePart;
 });
 
-const startCamera = async () => {
+function stopCamera() {
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((t) => t.stop());
+    mediaStream = null;
+  }
+}
+
+async function startCamera() {
   stopCamera();
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  if (!navigator.mediaDevices?.getUserMedia) {
     captureMode.value = 'upload';
     return;
   }
   try {
     mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: facingMode.value,
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
+      video: { facingMode: facingMode.value, width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false
     });
-    if (videoElementRef.value) {
-      videoElementRef.value.srcObject = mediaStream;
-      videoElementRef.value.play().catch(() => {});
+    if (videoEl.value) {
+      videoEl.value.srcObject = mediaStream;
+      videoEl.value.play().catch(() => {});
     }
-  } catch (err) {
-    console.warn('Camera access denied or unavailable, switching to file upload:', err);
+  } catch {
     captureMode.value = 'upload';
   }
-};
+}
 
-const stopCamera = () => {
-  if (mediaStream) {
-    mediaStream.getTracks().forEach(track => track.stop());
-    mediaStream = null;
-  }
-};
-
-const flipCamera = () => {
-  facingMode.value = facingMode.value === 'user' ? 'environment' : 'user';
-  startCamera();
-};
-
-const setCaptureMode = (mode) => {
+function setCaptureMode(mode) {
   captureMode.value = mode;
-  if (mode === 'camera' && !proofImageBase64.value) {
-    setTimeout(startCamera, 100);
+  if (mode === 'camera' && !proofBase64.value) {
+    setTimeout(startCamera, 80);
   } else {
     stopCamera();
   }
-};
+}
 
-const capturePhotoFromCamera = () => {
-  const video = videoElementRef.value;
-  const canvas = canvasElementRef.value;
-  if (!video || !canvas) return;
+function flipCamera() {
+  facingMode.value = facingMode.value === 'environment' ? 'user' : 'environment';
+  startCamera();
+}
 
-  const w = video.videoWidth || 640;
-  const h = video.videoHeight || 480;
-  canvas.width = w;
-  canvas.height = h;
-
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, w, h);
-
-  proofImageBase64.value = canvas.toDataURL('image/jpeg', 0.85);
+function capturePhoto() {
+  if (!videoEl.value) return;
+  proofBase64.value = captureVideoFrameCompressed(videoEl.value);
   stopCamera();
-};
+}
 
-const retakePhoto = () => {
-  proofImageBase64.value = '';
-  if (captureMode.value === 'camera') {
-    setTimeout(startCamera, 100);
-  }
-};
-
-const downloadCapturedPhoto = async () => {
-  if (!proofImageBase64.value) return;
-  await downloadBase64File(proofImageBase64.value, currentStandardFileName.value);
-};
-
-const closeCheckInModal = () => {
-  stopCamera();
-  showCheckInProofModal.value = false;
-  selectedActForCheckIn.value = null;
-  proofImageBase64.value = '';
-};
-
-onBeforeUnmount(() => {
-  stopCamera();
-});
-
-const openRegModal = (act) => {
-  selectedActForReg.value = act;
-  const dates = getAvailableDates(act);
-  regModalForm.value = {
-    date: dates.length > 0 ? dates[0] : act.date,
-    shiftType: 'Ca 1',
-    notes: ''
-  };
-};
-
-const getAvailableDates = (act) => {
-  if (!act) return [];
-  if (props.getActivityDates) {
-    const dates = props.getActivityDates(act);
-    return dates.filter(d => d >= todayDate.value);
-  }
-  return [act.date];
-};
-
-const submitShiftReg = () => {
-  if (!selectedActForReg.value) return;
-  emit('register-activity-shift', {
-    activityId: selectedActForReg.value.id,
-    date: regModalForm.value.date,
-    shiftType: regModalForm.value.shiftType,
-    notes: regModalForm.value.notes
-  });
-  selectedActForReg.value = null;
-};
-
-const cancelingRegObj = ref(null);
-const cancelingActName = ref('');
-
-const confirmCancelReg = (r, act) => {
-  cancelingRegObj.value = r;
-  cancelingActName.value = act ? act.name : 'Hoạt động';
-};
-
-const executeCancelReg = () => {
-  if (cancelingRegObj.value) {
-    emit('delete-activity-reg', cancelingRegObj.value.id);
-    cancelingRegObj.value = null;
-  }
-};
-
-const totalMyRegsCount = computed(() => {
-  if (!props.activityRegistrations || !props.loggedInMemberId) return 0;
-  const myId = String(props.loggedInMemberId).trim().toLowerCase();
-  return props.activityRegistrations.filter(r => String(r.memberId).trim().toLowerCase() === myId).length;
-});
-
-const getUserActivityRegs = (actId) => {
-  if (!props.activityRegistrations || !props.loggedInMemberId) return [];
-  return props.activityRegistrations.filter(
-    r => r.activityId === actId && r.memberId?.toLowerCase() === props.loggedInMemberId?.toLowerCase()
-  );
-};
-
-const todayDate = computed(() => {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-});
-
-const canUserCheckInToday = (act) => {
-  if (!act) return false;
-  const userRegs = getUserActivityRegs(act.id);
-  if (userRegs.length > 0) {
-    return userRegs.some(r => r.date === todayDate.value);
-  }
-  const actDates = props.getActivityDates ? props.getActivityDates(act) : [act.date];
-  return actDates.includes(todayDate.value);
-};
-
-const handleCheckInClick = (act) => {
-  const rec = props.getUserCheckInRecord(act.id);
-  if (rec?.status === 'present') return;
-  if (!canUserCheckInToday(act)) return;
-
-  selectedActForCheckIn.value = act;
-  proofImageBase64.value = '';
-  showCheckInProofModal.value = true;
-  captureMode.value = 'camera';
-  setTimeout(startCamera, 150);
-};
-
-const handleProofImageUpload = (e) => {
+async function handleFileUpload(e) {
   const file = e.target.files?.[0];
   if (!file) return;
-  if (!file.type.startsWith('image/')) {
-    alert('Vui lòng chọn file hình ảnh!');
-    return;
+  try {
+    proofBase64.value = await compressImageFile(file);
+  } catch (err) {
+    ui.showToast(err?.message || 'Không thể xử lý ảnh.', 'error');
   }
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    proofImageBase64.value = event.target.result;
-  };
-  reader.readAsDataURL(file);
-};
+}
 
-const confirmCheckInWithProof = () => {
-  if (!selectedActForCheckIn.value || !proofImageBase64.value) return;
+function retakePhoto() {
+  proofBase64.value = '';
+  if (captureMode.value === 'camera') setTimeout(startCamera, 80);
+}
 
-  // Save directly to Cloud Firestore & Cloud Storage
-  emit('check-in', {
-    activityId: selectedActForCheckIn.value.id,
-    proofImage: proofImageBase64.value,
-    proofFileName: currentStandardFileName.value,
-    proofFolderDate: currentProofFolderDate.value
-  });
+function openCheckInModal(act) {
+  if (getRecord(act.id)?.status === 'present' || !canCheckInToday(act)) return;
+  selectedActForCheckIn.value = act;
+  proofBase64.value = '';
+  captureMode.value = 'camera';
+  setTimeout(startCamera, 100);
+}
 
-  closeCheckInModal();
-};
+function closeCheckInModal() {
+  stopCamera();
+  selectedActForCheckIn.value = null;
+  proofBase64.value = '';
+}
 
-const selectedMonthText = computed(() => {
-  if (!props.selectedMonth) return '';
-  const parts = props.selectedMonth.split('-');
-  return `${parts[1]}/${parts[0]}`;
-});
-
-const monthlyActivities = computed(() => {
-  if (!props.activities) return [];
-  return props.activities.filter(a => a.date && a.date.startsWith(props.selectedMonth));
-});
-
-const userAttendedCount = computed(() => {
-  return monthlyActivities.value.filter(act => {
-    const rec = props.getUserCheckInRecord(act.id);
-    return rec && rec.status === 'present';
-  }).length;
-});
-
-const userLeaveCount = computed(() => {
-  return monthlyActivities.value.filter(act => {
-    const rec = props.getUserCheckInRecord(act.id);
-    return rec && rec.status === 'leave';
-  }).length;
-});
-
-const participationRate = computed(() => {
-  if (monthlyActivities.value.length === 0) return 0;
-  return Math.round((userAttendedCount.value / monthlyActivities.value.length) * 100);
-});
-
-const getCheckInButtonText = (act) => {
-  const rec = props.getUserCheckInRecord(act.id);
-  if (rec?.status === 'present') return 'Đã Điểm Danh';
-
-  const userRegs = getUserActivityRegs(act.id);
-  if (userRegs.length > 0) {
-    const isRegToday = userRegs.some(r => r.date === todayDate.value);
-    if (isRegToday) return 'Điểm Danh Ngay';
-    return 'Chưa Đến Ca Trực';
-  }
-
-  if (act.date === todayDate.value) return 'Điểm Danh Ngay';
-  if (act.date > todayDate.value) return 'Chưa Đến Ngày';
-  return 'Quá Hạn Điểm Danh';
-};
-
-const getCheckInButtonTitle = (act) => {
-  const rec = props.getUserCheckInRecord(act.id);
-  if (rec?.status === 'present') return 'Bạn đã hoàn thành điểm danh ca này';
-
-  const userRegs = getUserActivityRegs(act.id);
-  if (userRegs.length > 0) {
-    const isRegToday = userRegs.some(r => r.date === todayDate.value);
-    if (isRegToday) return 'Bấm để chụp hình thẻ sinh viên và điểm danh hôm nay!';
-    const regDatesStr = userRegs.map(r => props.formatDate(r.date)).join(', ');
-    return `Chưa đến ca trực bạn đã đăng ký (${regDatesStr}). Nút điểm danh chỉ mở đúng ngày ca trực!`;
-  }
-
-  if (act.date === todayDate.value) return 'Bấm để chụp hình thẻ sinh viên và điểm danh hôm nay!';
-  if (act.date > todayDate.value) return `Chưa đến ngày diễn ra (${props.formatDate(act.date)}). Không thể điểm danh trước!`;
-  return `Đã quá hạn điểm danh ngày ${props.formatDate(act.date)}. Vui lòng liên hệ Admin để điểm danh bù.`;
-};
-
-// Anime.js v4 Reactivity & Lifecycle Hooks
-watch(() => monthlyActivities.value.length, (newVal) => animateCounter(displayCounts, 'monthly', newVal), { immediate: true });
-watch(userAttendedCount, (newVal) => animateCounter(displayCounts, 'attended', newVal), { immediate: true });
-watch(userLeaveCount, (newVal) => animateCounter(displayCounts, 'leave', newVal), { immediate: true });
-watch(participationRate, (newVal) => animateCounter(displayCounts, 'rate', newVal), { immediate: true });
-watch(totalMyRegsCount, (newVal) => animateCounter(displayCounts, 'regs', newVal), { immediate: true });
-
-watch(monthlyActivities, () => {
-  nextTick(() => {
-    animateStagger('.activity-card', { duration: 400, staggerDelay: 45 });
-  });
-}, { deep: true });
-
-watch(showCheckInProofModal, (newVal) => {
-  if (newVal) {
-    nextTick(() => {
-      if (proofModalRef.value) animateModalEnter(proofModalRef.value);
+async function confirmCheckIn() {
+  if (!selectedActForCheckIn.value || !proofBase64.value) return;
+  isSubmittingCheckIn.value = true;
+  try {
+    await data.checkInActivity({
+      activityId: selectedActForCheckIn.value.id,
+      proofImage: proofBase64.value,
+      proofFileName: standardFileName.value,
+      proofFolderDate: proofFolderDate.value
     });
+    closeCheckInModal();
+  } finally {
+    isSubmittingCheckIn.value = false;
   }
-});
+}
 
-onMounted(() => {
-  if (heroTitleRef.value) {
-    animateScramble(heroTitleRef.value, 'Cổng Hoạt Động Cá Nhân', { duration: 1100 });
-  }
-  nextTick(() => {
-    animateStagger('.activity-card', { duration: 450, staggerDelay: 50 });
-  });
-});
+onBeforeUnmount(stopCamera);
 </script>
