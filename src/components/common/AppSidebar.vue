@@ -1,5 +1,5 @@
 <template>
-  <aside class="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-30 no-print">
+  <aside class="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-30 no-print">
     <!-- Brand Header -->
     <div class="h-16 px-4 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
       <img :src="logoUrl" alt="Logo ĐVP" class="w-9 h-9 rounded-lg object-contain border border-slate-200 dark:border-slate-700 bg-white p-0.5 shrink-0" />

@@ -7,14 +7,15 @@
     <LoginGatekeeper v-if="!auth.isLoggedIn" />
 
     <!-- Authenticated App Shell -->
-    <div v-else class="flex-1 flex flex-col lg:pl-64">
+    <div v-else class="flex-1 flex flex-col lg:flex-row min-w-0">
       <AppSidebar :primary-tabs="primaryTabs" :admin-tabs="adminTabs" />
 
-      <AppTopBar
-        :active-tab-title="activeTabMeta.label"
-        :active-tab-subtitle="activeTabMeta.subtitle"
-        :unread-count="unreadCount"
-      />
+      <div class="flex-1 min-w-0 flex flex-col">
+        <AppTopBar
+          :active-tab-title="activeTabMeta.label"
+          :active-tab-subtitle="activeTabMeta.subtitle"
+          :unread-count="unreadCount"
+        />
 
       <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-5 pb-24 lg:pb-8 space-y-5">
         <!-- Password Upgrade Recommendation Banner for Migrated Admins -->
@@ -91,7 +92,8 @@
         />
       </main>
 
-      <MobileBottomNav :all-tabs="allTabs" />
+        <MobileBottomNav :all-tabs="allTabs" />
+      </div>
     </div>
 
     <!-- Global Modals -->
